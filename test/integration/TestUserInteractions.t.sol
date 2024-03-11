@@ -26,20 +26,35 @@ contract TestUserInteractions is TestInitialized {
         token = deployment.run();
     }
 
-    function test__Integration__ApproveTokens() public fundedWithTokens(msg.sender) {
+    function test__Integration__ApproveTokens()
+        public
+        fundedWithTokens(msg.sender)
+    {
         ApproveTokens approveTokens = new ApproveTokens();
         approveTokens.approveTokens(address(token));
 
-        assertEq(token.allowance(msg.sender, approveTokens.spender()), approveTokens.amount());
+        assertEq(
+            token.allowance(msg.sender, approveTokens.spender()),
+            approveTokens.amount()
+        );
     }
 
-    function test__Integration__TransferTokens() public fundedWithTokens(msg.sender) {
+    function test__Integration__TransferTokens()
+        public
+        fundedWithTokens(msg.sender)
+    {
         uint256 tokenBalance = token.balanceOf(msg.sender);
         TransferTokens transferTokens = new TransferTokens();
         transferTokens.transferTokens(address(token));
 
-        assertEq(token.balanceOf(msg.sender), tokenBalance - transferTokens.amount());
-        assertEq(token.balanceOf(transferTokens.newAddress()), transferTokens.amount());
+        assertEq(
+            token.balanceOf(msg.sender),
+            tokenBalance - transferTokens.amount()
+        );
+        assertEq(
+            token.balanceOf(transferTokens.newAddress()),
+            transferTokens.amount()
+        );
     }
 
     function test__Integration__BuyTokens() public withLP {
@@ -47,12 +62,18 @@ contract TestUserInteractions is TestInitialized {
         BuyTokens buyTokens = new BuyTokens();
         buyTokens.buyTokens(address(token));
 
-        uint256 taxedAmount = buyTokens.amount() - buyTokens.amount() * 400 / 10000;
+        uint256 taxedAmount = buyTokens.amount() -
+            (buyTokens.amount() * 400) /
+            10000;
 
         assertApproxEqAbs(token.balanceOf(msg.sender), taxedAmount, 10 ** 18);
     }
 
-    function test__Integration__SellTokens() public fundedWithTokens(msg.sender) withLP {
+    function test__Integration__SellTokens()
+        public
+        fundedWithTokens(msg.sender)
+        withLP
+    {
         uint256 startingBalance = (msg.sender).balance;
         uint256 tokenBalance = token.balanceOf(msg.sender);
 
@@ -60,10 +81,17 @@ contract TestUserInteractions is TestInitialized {
         sellTokens.sellTokens(address(token));
 
         assertGt(msg.sender.balance, startingBalance);
-        assertEq(token.balanceOf(msg.sender), tokenBalance - sellTokens.amount());
+        assertEq(
+            token.balanceOf(msg.sender),
+            tokenBalance - sellTokens.amount()
+        );
     }
 
-    function test__Integration__ReceiveDividendTokens() public fundedWithTokens(msg.sender) withLP {
+    function test__Integration__ReceiveDividendTokens()
+        public
+        fundedWithTokens(msg.sender)
+        withLP
+    {
         // uint256 startingBalance = (msg.sender).balance;
         SellTokens sellTokens = new SellTokens();
         sellTokens.sellTokens(address(token));
@@ -71,7 +99,8 @@ contract TestUserInteractions is TestInitialized {
         sellTokens.sellTokens(address(token));
         sellTokens.sellTokens(address(token));
 
-        uint256 dividendTokenBalance = IERC20(token.getDividendToken()).balanceOf(msg.sender);
-        assertApproxEqAbs(dividendTokenBalance, token.getTotalDividends(), 10);
+        uint256 dividendTokenBalance = IERC20(token.getDividendToken())
+            .balanceOf(msg.sender);
+        assertEq(dividendTokenBalance, token.getTotalDividends());
     }
 }

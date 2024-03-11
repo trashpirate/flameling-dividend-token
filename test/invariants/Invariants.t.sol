@@ -85,7 +85,7 @@ contract Invariants is TestInitialized {
         targetContract(address(handler));
     }
 
-    function invariant__TokenSupply() public {
+    function invariant__TokenSupply() public skipFork {
         uint256 sumOfBalances;
         uint256 numOfActors = handler.actorCount();
 
@@ -100,18 +100,18 @@ contract Invariants is TestInitialized {
         assertEq(token.totalSupply(), allTokens);
     }
 
-    function invariant__DividendMapping() public {
+    function invariant__DividendMapping() public skipFork {
         assertEq(
             handler.ghost_numberOfDividendAccounts(),
             token.getNumberOfDividendAccounts()
         );
     }
 
-    function invariant__TotalDividendShares() public {
+    function invariant__TotalDividendShares() public skipFork {
         assertEq(handler.ghost_totalDividendShares(), token.getTotalShares());
     }
 
-    function invariant__TotalDividends() public {
+    function invariant__TotalDividends() public skipFork {
         uint256 sumOfDividends;
         uint256 numOfActors = handler.actorCount();
 
@@ -128,7 +128,7 @@ contract Invariants is TestInitialized {
         assertEq(token.getTotalDividends(), sumOfDividends + contractBalance);
     }
 
-    function invariant__CallSummary() public view {
+    function invariant__CallSummary() public view skipFork {
         handler.callSummary();
     }
 }

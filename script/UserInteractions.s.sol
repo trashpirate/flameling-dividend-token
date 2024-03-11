@@ -24,13 +24,20 @@ contract BuyTokens is Script {
         uint256 ethAmount = router.getAmountsIn(amount, path)[0];
 
         vm.startBroadcast();
-        router.swapExactETHForTokensSupportingFeeOnTransferTokens{value: ethAmount}(0, path, tx.origin, block.timestamp);
+        uint256 gasLeft = gasleft();
+        router.swapExactETHForTokensSupportingFeeOnTransferTokens{
+            value: ethAmount
+        }(0, path, tx.origin, block.timestamp);
+        console.log("BuyTokens - gas: ", gasLeft - gasleft());
         vm.stopBroadcast();
         console.log("Bought Tokens: ", token.balanceOf(tx.origin));
     }
 
     function run() external {
-        address recentContractAddress = DevOpsTools.get_most_recent_deployment("FlamelingToken", block.chainid);
+        address recentContractAddress = DevOpsTools.get_most_recent_deployment(
+            "FlamelingToken",
+            block.chainid
+        );
         buyTokens(recentContractAddress);
     }
 }
@@ -51,15 +58,25 @@ contract SellTokens is Script {
 
         vm.startBroadcast();
         token.approve(routerAddress, amount);
-
-        router.swapExactTokensForETHSupportingFeeOnTransferTokens(amount, 0, path, payable(tx.origin), block.timestamp);
+        uint256 gasLeft = gasleft();
+        router.swapExactTokensForETHSupportingFeeOnTransferTokens(
+            amount,
+            0,
+            path,
+            payable(tx.origin),
+            block.timestamp
+        );
+        console.log("SellTokens - gas: ", gasLeft - gasleft());
         vm.stopBroadcast();
 
         console.log("Sold Tokens for: ", (tx.origin).balance - startingBalance);
     }
 
     function run() external {
-        address recentContractAddress = DevOpsTools.get_most_recent_deployment("FlamelingToken", block.chainid);
+        address recentContractAddress = DevOpsTools.get_most_recent_deployment(
+            "FlamelingToken",
+            block.chainid
+        );
         sellTokens(recentContractAddress);
     }
 }
@@ -78,7 +95,10 @@ contract ApproveTokens is Script {
     }
 
     function run() external {
-        address recentContractAddress = DevOpsTools.get_most_recent_deployment("FlamelingToken", block.chainid);
+        address recentContractAddress = DevOpsTools.get_most_recent_deployment(
+            "FlamelingToken",
+            block.chainid
+        );
         approveTokens(recentContractAddress);
     }
 }
@@ -90,12 +110,17 @@ contract TransferTokens is Script {
     function transferTokens(address recentContractAddress) public {
         FlamelingToken token = FlamelingToken(payable(recentContractAddress));
         vm.startBroadcast();
+        uint256 gasLeft = gasleft();
         token.transfer(newAddress, amount);
+        console.log("SellTokens - gas: ", gasLeft - gasleft());
         vm.stopBroadcast();
     }
 
     function run() external {
-        address recentContractAddress = DevOpsTools.get_most_recent_deployment("FlamelingToken", block.chainid);
+        address recentContractAddress = DevOpsTools.get_most_recent_deployment(
+            "FlamelingToken",
+            block.chainid
+        );
         transferTokens(recentContractAddress);
     }
 }

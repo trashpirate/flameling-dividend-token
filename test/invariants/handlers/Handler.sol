@@ -244,15 +244,6 @@ contract Handler is CommonBase, StdCheats, StdUtils, Test {
         vm.prank(currentActor);
         token.transfer(receiver, amount);
 
-        // if (token.balanceOf(currentActor) > token.getSwapThreshold()) {
-        //     assertEq(
-        //         token.balanceOf(currentActor),
-        //         token.getSharesOf(currentActor)
-        //     );
-        // } else {
-        //     assertEq(0, token.getSharesOf(currentActor));
-        // }
-
         countAccounts(currentActor);
         countAccounts(receiver);
     }

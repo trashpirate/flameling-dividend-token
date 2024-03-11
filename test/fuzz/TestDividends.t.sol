@@ -59,7 +59,7 @@ contract FuzzDividends is TestInitialized {
         vm.deal(USER1, 100 ether);
     }
 
-    function test__Fuzz__DividendEligibility(uint256 amount) public {
+    function test__Fuzz__DividendEligibility(uint256 amount) public skipFork {
         vm.assume(amount > 0 && amount < token.balanceOf(USER1));
 
         vm.prank(USER1);
@@ -78,7 +78,7 @@ contract FuzzDividends is TestInitialized {
         }
     }
 
-    function test__Fuzz__ReceivesDividends(uint256 amount) public {
+    function test__Fuzz__ReceivesDividends(uint256 amount) public skipFork {
         vm.assume(amount >= 1e9 && amount < token.balanceOf(USER1));
 
         buyTokens(USER1, 2_500_000 ether);

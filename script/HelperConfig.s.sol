@@ -20,7 +20,11 @@ contract HelperConfig is Script {
         address routerAddress;
     }
 
-    constructor() {
+    constructor(bool testing, uint256 _chainId) {
+        if (testing) {
+            vm.chainId(_chainId);
+            console.log("Chain ID set to: ", _chainId);
+        }
         if (
             block.chainid == 1 || block.chainid == 56 || block.chainid == 8453
         ) {

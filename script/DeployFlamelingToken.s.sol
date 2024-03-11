@@ -12,11 +12,20 @@ contract DeployFlamelingToken is Script {
     HelperConfig public helperConfig;
 
     function run() external returns (FlamelingToken token) {
-        helperConfig = new HelperConfig();
-        (address initialOwner, address feeAddress, address tokenAddress, address routerAddress) =
-            helperConfig.activeNetworkConfig();
+        helperConfig = new HelperConfig(false, 0);
+        (
+            address initialOwner,
+            address feeAddress,
+            address tokenAddress,
+            address routerAddress
+        ) = helperConfig.activeNetworkConfig();
         vm.startBroadcast();
-        token = new FlamelingToken(initialOwner, feeAddress, tokenAddress, routerAddress);
+        token = new FlamelingToken(
+            initialOwner,
+            feeAddress,
+            tokenAddress,
+            routerAddress
+        );
         vm.stopBroadcast();
     }
 }

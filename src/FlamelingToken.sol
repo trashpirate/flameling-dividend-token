@@ -57,16 +57,11 @@ contract FlamelingToken is ERC20, Ownable {
     address private s_baseFeeAddress;
 
     bool private s_swapping;
-    bool private s_processed = true;
 
     mapping(address => bool) private s_ammPairs;
     mapping(address => bool) private s_isExcludedFromFees;
     mapping(address => bool) private s_isExcludedFromDividends;
-    mapping(address => uint256) private s_claimedDividendsPerToken;
-    mapping(address => uint256) private s_dividendCredit;
     mapping(address => uint256) private s_lastClaimTime;
-
-    // DividendShares.Map private s_isExcludedFromDividends;
 
     /**
      * Events

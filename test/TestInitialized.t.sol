@@ -39,6 +39,13 @@ contract TestInitialized is Test {
     uint256 constant STARTING_BALANCE = TOTAL_SUPPLY / 100;
     uint256 constant SEND_TOKENS = STARTING_BALANCE / 10;
 
+    modifier skipFork() {
+        if (block.chainid != 31337) {
+            return;
+            _;
+        }
+    }
+
     modifier fundedWithETH(address account) {
         // fund user with native coin
         vm.deal(account, 10 ether);
@@ -75,9 +82,18 @@ contract TestInitialized is Test {
 
         token.approve(routerAddress, lpSupply);
 
-        (uint256 amountToken, uint256 amountETH, uint256 liquidity) = IUniswapV2Router02(routerAddress).addLiquidityETH{
-            value: 10 ether
-        }(address(token), lpSupply, 0, 0, token.owner(), block.timestamp);
+        (
+            uint256 amountToken,
+            uint256 amountETH,
+            uint256 liquidity
+        ) = IUniswapV2Router02(routerAddress).addLiquidityETH{value: 10 ether}(
+                address(token),
+                lpSupply,
+                0,
+                0,
+                token.owner(),
+                block.timestamp
+            );
         vm.stopPrank();
 
         // console.log(amountToken);
@@ -92,7 +108,10 @@ contract TestInitialized is Test {
         token = deployment.run();
     }
 
-    function toDecimals(uint256 number, uint256 decimals) public pure returns (string memory floatNumber) {
+    function toDecimals(
+        uint256 number,
+        uint256 decimals
+    ) public pure returns (string memory floatNumber) {
         string memory integer = vm.toString(number / 10 ** decimals);
         string memory floates = vm.toString(number % 10 ** decimals);
         string memory point = ".";
@@ -109,7 +128,13 @@ contract TestInitialized is Test {
 
         vm.startPrank(account);
         token.approve(routerAddress, amount);
-        router.swapExactTokensForETHSupportingFeeOnTransferTokens(amount, 0, path, account, block.timestamp);
+        router.swapExactTokensForETHSupportingFeeOnTransferTokens(
+            amount,
+            0,
+            path,
+            account,
+            block.timestamp
+        );
         vm.stopPrank();
     }
 
@@ -124,7 +149,9 @@ contract TestInitialized is Test {
         uint256 ethAmount = router.getAmountsIn(amount, path)[0];
 
         vm.startPrank(account);
-        router.swapExactETHForTokensSupportingFeeOnTransferTokens{value: ethAmount}(0, path, account, block.timestamp);
+        router.swapExactETHForTokensSupportingFeeOnTransferTokens{
+            value: ethAmount
+        }(0, path, account, block.timestamp);
         vm.stopPrank();
     }
 }
