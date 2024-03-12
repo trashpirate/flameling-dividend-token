@@ -112,7 +112,7 @@ contract TransferTokens is Script {
         vm.startBroadcast();
         uint256 gasLeft = gasleft();
         token.transfer(newAddress, amount);
-        console.log("SellTokens - gas: ", gasLeft - gasleft());
+        console.log("TransferTokens - gas: ", gasLeft - gasleft());
         vm.stopBroadcast();
     }
 

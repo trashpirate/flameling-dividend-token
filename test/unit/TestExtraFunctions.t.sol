@@ -22,10 +22,18 @@ contract TestExtraFunctions is TestInitialized {
         sellTokens(USER1, SEND_TOKENS);
 
         assertEq(token.getFeesPending(), totalFees);
-        assertEq(token.getBaseFeesPending() + token.getDividendFeesPending(), totalFees);
+        assertEq(
+            token.getBaseFeesPending() + token.getDividendFeesPending(),
+            totalFees
+        );
     }
 
-    function test__Unit__CollectsBaseFee() public fundedWithTokens(USER1) fundedWithETH(USER1) withLP {
+    function test__Unit__CollectsBaseFee()
+        public
+        fundedWithTokens(USER1)
+        fundedWithETH(USER1)
+        withLP
+    {
         // uint256 totalTxFee = token.getTotalTransactionFee();
         // uint256 totalFees = (SEND_TOKENS * totalTxFee) / 10000;
         uint256 currentBalance = token.getFeeAddress().balance;
@@ -48,21 +56,59 @@ contract TestExtraFunctions is TestInitialized {
         sellTokens(USER1, SEND_TOKENS); // => threshold hit -> swap
         assertGt(token.getFeeAddress().balance - currentBalance, 0);
         // console.log(token.getBaseFeesPending());
-        console.log("Fee collected: %e", (token.getFeeAddress().balance - currentBalance));
+        console.log(
+            "Fee collected: %e",
+            (token.getFeeAddress().balance - currentBalance)
+        );
     }
 
-    function test__Unit__DistributesRewards() public fundedWithTokens(USER1) fundedWithETH(USER1) withLP {
-        // SEND_TOKENS = 1_000_000
-        // 4% of 1_000_000 = 40_000
-        sellTokens(USER1, SEND_TOKENS); // 40_000
-        buyTokens(USER1, SEND_TOKENS); // 80_000
-        sellTokens(USER1, SEND_TOKENS); // 120_000
-        buyTokens(USER1, SEND_TOKENS); // 160_000 => threshold hit but no swap
-        sellTokens(USER1, SEND_TOKENS); // => threshold hit -> swap
+    function test__Unit__DistributesRewards()
+        public
+        fundedWithTokens(USER1)
+        fundedWithTokens(USER2)
+        fundedWithTokens(USER3)
+        withLP
+    {
+        vm.startPrank(token.owner());
+        token.excludeFromFees(token.owner(), false);
+        vm.stopPrank();
 
-        console.log("Dividends collected: %e", IERC20(token.getDividendToken()).balanceOf(address(token)));
+        sellTokens(token.owner(), 15_000_000 ether); // 2 % should be 300_000
 
-        assertGt(IERC20(token.getDividendToken()).balanceOf(address(token)), 0);
+        vm.startPrank(token.owner());
+        token.excludeFromFees(token.owner(), true);
+        token.transfer(makeAddr("any"), 100 ether);
+        vm.stopPrank();
+
+        console.log(
+            "\nNumber of DividendAccounts: ",
+            token.getNumberOfDividendAccounts()
+        );
+        console.log(
+            "Token Contract Balance: ",
+            token.balanceOf(address(token))
+        );
+        console.log(
+            "Dividend Contract Balance: ",
+            IERC20(token.getDividendToken()).balanceOf(address(token))
+        );
+
+        uint dividendBalance1 = IERC20(token.getDividendToken()).balanceOf(
+            USER1
+        );
+        uint dividendBalance2 = IERC20(token.getDividendToken()).balanceOf(
+            USER2
+        );
+        uint dividendBalance3 = IERC20(token.getDividendToken()).balanceOf(
+            USER3
+        );
+
+        console.log("Dividend Balance: ", dividendBalance1);
+        console.log("Dividend Balance: ", dividendBalance2);
+        console.log("Dividend Balance: ", dividendBalance3);
+
+        assertEq(dividendBalance1, dividendBalance2);
+        assertEq(dividendBalance3, dividendBalance2);
     }
 
     // function test__Unit__EmitEvent_DividendsDistributed() public tokenFunded ETHfunded withLP {

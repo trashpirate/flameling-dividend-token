@@ -329,10 +329,6 @@ contract FlamelingToken is ERC20, Ownable {
         while (
             gasUsed < gasAllowed && iterations < _numberOfDividendAccounts()
         ) {
-            if (lastProcessedIndex >= _numberOfDividendAccounts()) {
-                lastProcessedIndex = 0;
-            }
-
             address account = _dividendAccountAtIndex(lastProcessedIndex);
             if (
                 (block.timestamp - s_lastClaimTime[account]) >= s_claimInterval
@@ -342,6 +338,10 @@ contract FlamelingToken is ERC20, Ownable {
 
             iterations++;
             lastProcessedIndex++;
+
+            if (lastProcessedIndex >= _numberOfDividendAccounts()) {
+                lastProcessedIndex = 0;
+            }
 
             gasUsed = gasUsed + gasLeft - gasleft();
             gasLeft = gasleft();
@@ -367,7 +367,7 @@ contract FlamelingToken is ERC20, Ownable {
             dividendAmount <= s_dividendToken.balanceOf(address(this))
         ) {
             try s_dividendToken.transfer(account, dividendAmount) {
-                s_dividendAccounts.dividends[msg.sender] %= PRECISION;
+                s_dividendAccounts.dividends[account] %= PRECISION;
                 emit ClaimedDividends(account, dividendAmount);
             } catch {
                 revert();
@@ -638,4 +638,13 @@ contract FlamelingToken is ERC20, Ownable {
     function getRemainingDividends() external view returns (uint256) {
         return s_dividendRemainder / PRECISION;
     }
+
+    //     function withdrawETH() external onlyOwner {
+    //     (bool success, )=address(owner()).call{value: address(this).balance}("");
+    //     require(success, "Failed in withdrawal");
+    // }
+    // function withdrawToken(address token) external onlyOwner{
+    //     require(address(this) != token, "Not allowed");
+    //     IERC20(token).safeTransfer(owner(), IERC20(token).balanceOf(address(this)));
+    // }
 }
