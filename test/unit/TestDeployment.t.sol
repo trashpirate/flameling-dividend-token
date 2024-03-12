@@ -14,8 +14,6 @@ import {IUniswapV2Router02} from "@uniswap/v2-periphery/contracts/interfaces/IUn
 
 contract TestDeployment is TestInitialized {
     function test__Initialization() public {
-        assertEq(token.name(), NAME);
-        assertEq(token.symbol(), SYMBOL);
         assertEq(token.decimals(), DECIMALS);
         assertEq(token.totalSupply(), TOTAL_SUPPLY);
         assertEq(token.balanceOf(token.owner()), TOTAL_SUPPLY);
@@ -28,11 +26,15 @@ contract TestDeployment is TestInitialized {
     function test__ConstructorArguments() public {
         HelperConfig config = deployment.helperConfig();
         (
+            string memory name,
+            string memory symbol,
             address initialOwner,
             address feeAddress,
             address tokenAddress,
             address routerAddress
         ) = config.activeNetworkConfig();
+        assertEq(token.name(), name);
+        assertEq(token.symbol(), symbol);
         assertEq(token.owner(), initialOwner);
         assertEq(token.getFeeAddress(), feeAddress);
         assertEq(token.getDividendToken(), tokenAddress);
@@ -45,11 +47,11 @@ contract TestDeployment is TestInitialized {
     }
 
     function test__OwnerIsExcludedFromFees() public {
-        assertEq(token.getExcludedFromFee(token.owner()), true);
+        assertEq(token.isExcludedFromFee(token.owner()), true);
     }
 
     function test__ContractIsExcludedFromFees() public {
-        assertEq(token.getExcludedFromFee(address(token)), true);
+        assertEq(token.isExcludedFromFee(address(token)), true);
     }
 
     function test__OwnerIsExcludedFromDividends() public {

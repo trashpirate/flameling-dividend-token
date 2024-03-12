@@ -10,17 +10,7 @@ import {IUniswapV2Router02} from "@uniswap/v2-periphery/contracts/interfaces/IUn
 
 import {DeployFlamelingToken} from "../../script/DeployFlamelingToken.s.sol";
 import {FlamelingToken} from "../../src/FlamelingToken.sol";
-import {
-    UpdateFeeAddress,
-    UpdateDividendFee,
-    UpdateBaseFee,
-    UpdateDividendToken,
-    UpdateSwapThreshold,
-    UpdateGasForProcessing,
-    ExcludeFromFees,
-    ExcludeFromDividends,
-    UpdateAMMPair
-} from "../../script/OwnerInteractions.s.sol";
+import {UpdateFeeAddress, UpdateDividendFee, UpdateBaseFee, UpdateDividendToken, UpdateSwapThreshold, UpdateGasForProcessing, ExcludeFromFees, ExcludeFromDividends, UpdateAMMPair} from "../../script/OwnerInteractions.s.sol";
 
 contract TestOwnerInteractions is TestInitialized {
     function setUp() external virtual override {
@@ -70,23 +60,32 @@ contract TestOwnerInteractions is TestInitialized {
         UpdateGasForProcessing updateGasForProcessing = new UpdateGasForProcessing();
         updateGasForProcessing.updateGasForProcessing(address(token));
 
-        assertEq(token.getGasForProcessing(), updateGasForProcessing.newGasLimit());
+        assertEq(
+            token.getGasForProcessing(),
+            updateGasForProcessing.newGasLimit()
+        );
     }
 
     function test__Integration__ExcludeFromFees() public {
         ExcludeFromFees excludeFromFees = new ExcludeFromFees();
 
-        assertEq(token.getExcludedFromFee(excludeFromFees.someAddress()), false);
+        assertEq(token.isExcludedFromFee(excludeFromFees.someAddress()), false);
         excludeFromFees.excludeFromFees(address(token));
-        assertEq(token.getExcludedFromFee(excludeFromFees.someAddress()), true);
+        assertEq(token.isExcludedFromFee(excludeFromFees.someAddress()), true);
     }
 
     function test__Integration__ExcludeFromDividends() public {
         ExcludeFromDividends excludeFromDividends = new ExcludeFromDividends();
 
-        assertEq(token.getExcludedFromDividends(excludeFromDividends.someAddress()), false);
+        assertEq(
+            token.getExcludedFromDividends(excludeFromDividends.someAddress()),
+            false
+        );
         excludeFromDividends.excludeFromDividends(address(token));
-        assertEq(token.getExcludedFromDividends(excludeFromDividends.someAddress()), true);
+        assertEq(
+            token.getExcludedFromDividends(excludeFromDividends.someAddress()),
+            true
+        );
     }
 
     function test__Integration__UpdateAMMPair() public {

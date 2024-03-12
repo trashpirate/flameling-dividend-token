@@ -16,12 +16,12 @@ contract TestExtraFunctions is TestInitialized {
     event DividendsDistributed(uint256 indexed amount);
 
     function test__FeesPending() public fundedWithTokens(USER1) withLP {
-        uint256 totalTxFee = token.getTotalTransactionFee();
+        uint256 totalTxFee = token.getBaseFee() + token.getDividendFee();
         uint256 totalFees = (SEND_TOKENS * totalTxFee) / 10000;
 
         sellTokens(USER1, SEND_TOKENS);
 
-        assertEq(token.getFeesPending(), totalFees);
+        assertEq(token.balanceOf(address(token)), totalFees);
         assertEq(
             token.getBaseFeesPending() + token.getDividendFeesPending(),
             totalFees
@@ -52,7 +52,10 @@ contract TestExtraFunctions is TestInitialized {
         buyTokens(USER1, SEND_TOKENS); // 160_000 => threshold hit but no swap
         // console.log(token.getBaseFeesPending());
         assertEq(token.getFeeAddress().balance - currentBalance, 0);
-        assertGt(token.getFeesPending(), 160_000 * 10 ** token.decimals());
+        assertGt(
+            token.balanceOf(address(token)),
+            160_000 * 10 ** token.decimals()
+        );
         sellTokens(USER1, SEND_TOKENS); // => threshold hit -> swap
         assertGt(token.getFeeAddress().balance - currentBalance, 0);
         // console.log(token.getBaseFeesPending());

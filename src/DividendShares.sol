@@ -30,18 +30,18 @@ contract DividendShares is Ownable {
 
     IERC20 internal s_dividendToken;
 
-    DividendAccounts internal s_dividendAccounts;
-    uint256 internal s_totalDividends;
-    uint256 internal s_dividendsPerToken;
-    uint256 internal s_totalShares;
-    uint256 internal s_dividendRemainder;
-    uint256 internal s_minSharesRequired = 100_000 * 10 ** 18;
-    address[] internal s_accountsExcludedFromDividends;
+    DividendAccounts private s_dividendAccounts;
+    uint256 private s_totalDividends;
+    uint256 private s_dividendsPerToken;
+    uint256 private s_totalShares;
+    uint256 private s_dividendRemainder;
+    uint256 private s_minSharesRequired = 100_000 * 10 ** 18;
+    address[] private s_accountsExcludedFromDividends;
     mapping(address => bool) private s_isExcludedFromDividends;
     mapping(address => uint256) private s_lastClaimTime;
 
     uint256 private s_claimInterval = 0;
-    uint256 private s_nextIndexToProcess = 0;
+    uint256 private s_lastIndexProcessed = 0;
     uint256 private s_gasForProcessing = 300_000;
 
     /** Events */
@@ -72,35 +72,21 @@ contract DividendShares is Ownable {
     }
 
     /** Functions */
-    function _numberOfDividendAccounts() private view returns (uint256) {
-        return s_dividendAccounts.accounts.length;
-    }
-
-    /// @notice Gets account (address) at specific index
-    /// @param index Index of entry with the account
-    function _dividendAccountAtIndex(
-        uint256 index
-    ) private view returns (address) {
-        if (index >= _numberOfDividendAccounts()) {
-            revert DividendShares__InvalidIndex(
-                index,
-                _numberOfDividendAccounts()
-            );
-        }
-        return s_dividendAccounts.accounts[index];
-    }
 
     /// @notice Updates dividend balance
     /// @param account address of account
     function _updateDividends(address account) internal {
-        uint256 owed = s_dividendsPerToken -
-            s_dividendAccounts.dividendsPerTokenCredited[account];
-        s_dividendAccounts.dividends[account] +=
-            s_dividendAccounts.shares[account] *
-            owed;
+        uint256 dividendsPerToken = s_dividendsPerToken;
+        unchecked {
+            s_dividendAccounts.dividends[account] +=
+                s_dividendAccounts.shares[account] *
+                (dividendsPerToken -
+                    s_dividendAccounts.dividendsPerTokenCredited[account]);
+        }
+
         s_dividendAccounts.dividendsPerTokenCredited[
             account
-        ] = s_dividendsPerToken;
+        ] = dividendsPerToken;
     }
 
     /// @notice Removes entry from map
@@ -116,7 +102,7 @@ contract DividendShares is Ownable {
 
         uint256 index = s_dividendAccounts.indexOf[account];
         address lastAccount = s_dividendAccounts.accounts[
-            _numberOfDividendAccounts() - 1
+            s_dividendAccounts.accounts.length - 1
         ];
 
         s_dividendAccounts.indexOf[lastAccount] = index;
@@ -135,15 +121,17 @@ contract DividendShares is Ownable {
             !s_isExcludedFromDividends[account]
         ) {
             if (s_dividendAccounts.inserted[account]) {
-                uint256 currentShares = s_dividendAccounts.shares[account];
-                s_totalShares = s_totalShares + balance - currentShares;
+                s_totalShares =
+                    s_totalShares +
+                    balance -
+                    s_dividendAccounts.shares[account];
                 s_dividendAccounts.shares[account] = balance;
             } else {
                 s_dividendAccounts.inserted[account] = true;
                 s_dividendAccounts.shares[account] = balance;
-                s_dividendAccounts.indexOf[
-                    account
-                ] = _numberOfDividendAccounts();
+                s_dividendAccounts.indexOf[account] = s_dividendAccounts
+                    .accounts
+                    .length;
                 s_dividendAccounts.accounts.push(account);
                 s_totalShares += balance;
             }
@@ -160,47 +148,55 @@ contract DividendShares is Ownable {
     /// @param amount Collected dividend fee
     function _distributeDividends(uint256 amount) internal {
         s_totalDividends += amount;
-        if (s_totalShares > 0) {
+        uint256 totalShares = s_totalShares;
+        if (totalShares > 0) {
             uint256 available = (amount * PRECISION) + s_dividendRemainder;
-            s_dividendsPerToken += available / s_totalShares;
-            s_dividendRemainder = available % s_totalShares;
+            s_dividendsPerToken += available / totalShares;
+            unchecked {
+                s_dividendRemainder = available % totalShares;
+            }
             emit DividendsDistributed(amount);
         }
     }
 
     function _processDividends() internal returns (bool) {
         uint256 gasAllowed = s_gasForProcessing;
-        uint256 nextIndexToProcess = s_nextIndexToProcess;
-        if (_numberOfDividendAccounts() == 0) {
+        uint256 numberOfAccounts = s_dividendAccounts.accounts.length;
+        uint256 lastIndexProcessed = s_lastIndexProcessed;
+
+        if (numberOfAccounts == 0) {
             return false;
         }
 
-        uint256 gasUsed = 0;
+        uint256 gasUsed;
         uint256 gasLeft = gasleft();
 
-        uint256 iterations = 0;
-        while (
-            gasUsed < gasAllowed && iterations < _numberOfDividendAccounts()
-        ) {
-            address account = _dividendAccountAtIndex(nextIndexToProcess);
+        uint256 iterations;
+        while (gasUsed < gasAllowed && iterations < numberOfAccounts) {
+            unchecked {
+                iterations++;
+                lastIndexProcessed++;
+            }
+
+            if (lastIndexProcessed >= numberOfAccounts) {
+                lastIndexProcessed = 0;
+            }
+
+            address account = s_dividendAccounts.accounts[lastIndexProcessed];
             if (
                 (block.timestamp - s_lastClaimTime[account]) >= s_claimInterval
             ) {
                 _withdrawDividends(account);
             }
 
-            iterations++;
-            nextIndexToProcess++;
-
-            if (nextIndexToProcess >= _numberOfDividendAccounts()) {
-                nextIndexToProcess = 0;
+            unchecked {
+                gasUsed = gasUsed + gasLeft - gasleft();
             }
 
-            gasUsed = gasUsed + gasLeft - gasleft();
             gasLeft = gasleft();
         }
 
-        s_nextIndexToProcess = nextIndexToProcess;
+        s_lastIndexProcessed = lastIndexProcessed;
         return true;
     }
 
@@ -211,20 +207,22 @@ contract DividendShares is Ownable {
         _updateDividends(account);
 
         // calculate withrdrawable dividend amount
-        uint256 dividendAmount = s_dividendAccounts.dividends[account] /
-            PRECISION;
+
+        uint256 dividends = s_dividendAccounts.dividends[account];
+        uint256 dividendAmount = dividends / PRECISION;
 
         // transfer dividends to account
-        if (
-            dividendAmount > 0 &&
-            dividendAmount <= s_dividendToken.balanceOf(address(this))
-        ) {
+        if (dividendAmount > 0) {
             try s_dividendToken.transfer(account, dividendAmount) {
-                s_dividendAccounts.dividends[account] %= PRECISION;
+                unchecked {
+                    s_dividendAccounts.dividends[account] =
+                        dividends -
+                        (dividendAmount * PRECISION);
+                }
                 emit DividendsWithdrawn(account, dividendAmount);
             } catch {
-                revert();
-                // return false;
+                // revert();
+                return false;
             }
         } else {
             return false;
@@ -291,7 +289,7 @@ contract DividendShares is Ownable {
 
     /// @notice Returns number of token holders
     function getNumberOfDividendAccounts() external view returns (uint256) {
-        return _numberOfDividendAccounts();
+        return s_dividendAccounts.accounts.length;
     }
 
     /// @notice Returns total accumulated dividends
@@ -310,7 +308,13 @@ contract DividendShares is Ownable {
     function getDividendAccountAtIndex(
         uint256 index
     ) external view returns (address) {
-        return _dividendAccountAtIndex(index);
+        if (index >= s_dividendAccounts.accounts.length) {
+            revert DividendShares__InvalidIndex(
+                index,
+                s_dividendAccounts.accounts.length
+            );
+        }
+        return s_dividendAccounts.accounts[index];
     }
 
     /// @notice Returns whether address is excluded from dividends
@@ -326,8 +330,8 @@ contract DividendShares is Ownable {
     }
 
     /// @notice Returns last processed index
-    function getNextIndexToProcess() external view returns (uint256) {
-        return s_nextIndexToProcess;
+    function getLastIndexProcessed() external view returns (uint256) {
+        return s_lastIndexProcessed;
     }
 
     /// @notice Returns total shares

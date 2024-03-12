@@ -14,6 +14,8 @@ contract DeployFlamelingToken is Script {
     function run() external returns (FlamelingToken token) {
         helperConfig = new HelperConfig(false, 0);
         (
+            string memory name,
+            string memory symbol,
             address initialOwner,
             address feeAddress,
             address tokenAddress,
@@ -21,6 +23,8 @@ contract DeployFlamelingToken is Script {
         ) = helperConfig.activeNetworkConfig();
         vm.startBroadcast();
         token = new FlamelingToken(
+            name,
+            symbol,
             initialOwner,
             feeAddress,
             tokenAddress,

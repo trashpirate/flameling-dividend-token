@@ -14,7 +14,7 @@ contract DistributeRewards is Script {
     uint256 public newBalance = 100_000 ether;
     uint256 public numAccounts = 20;
 
-    function sellTokens(address recentContractAddress) public {
+    function fundAccounts(address recentContractAddress) public {
         FlamelingToken token = FlamelingToken(payable(recentContractAddress));
 
         vm.startBroadcast();
@@ -25,6 +25,30 @@ contract DistributeRewards is Script {
             );
         }
         vm.stopBroadcast();
+    }
+
+    function buyTokens(address recentContractAddress) public {
+        FlamelingToken token = FlamelingToken(payable(recentContractAddress));
+        address routerAddress = token.getRouterV2Address();
+        IUniswapV2Router02 router = IUniswapV2Router02(routerAddress);
+
+        address[] memory path = new address[](2);
+        path[0] = router.WETH();
+        path[1] = address(token);
+
+        uint256 ethAmount = router.getAmountsIn(amount, path)[0];
+
+        vm.startBroadcast();
+        uint256 gasLeft = gasleft();
+        router.swapExactETHForTokensSupportingFeeOnTransferTokens{
+            value: ethAmount
+        }(0, path, tx.origin, block.timestamp);
+        console.log("BuyTokens - gas: ", gasLeft - gasleft());
+        vm.stopBroadcast();
+    }
+
+    function sellTokens(address recentContractAddress) public {
+        FlamelingToken token = FlamelingToken(payable(recentContractAddress));
 
         // sell tokens
         address routerAddress = token.getRouterV2Address();
@@ -64,6 +88,7 @@ contract DistributeRewards is Script {
             "FlamelingToken",
             block.chainid
         );
+        fundAccounts(recentContractAddress);
         sellTokens(recentContractAddress);
         transferTokens(recentContractAddress);
     }

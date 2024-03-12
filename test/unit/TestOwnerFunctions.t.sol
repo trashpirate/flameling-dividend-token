@@ -58,7 +58,7 @@ contract TestOwnerFunctions is TestInitialized {
         vm.prank(token.owner());
         token.excludeFromFees(USER, true);
 
-        assertEq(token.getExcludedFromFee(USER), true);
+        assertEq(token.isExcludedFromFee(USER), true);
     }
 
     function test__RevertWhen_NotOwnerExcludesFromFee() public {

@@ -13,7 +13,12 @@ contract HelperConfig is Script {
     // chain configurations
     NetworkConfig public activeNetworkConfig;
 
+    string constant NAME = "FLAMELING";
+    string constant SYMBOL = "0X177";
+
     struct NetworkConfig {
+        string name;
+        string symbol;
         address initialOwner;
         address feeAddress;
         address tokenAddress;
@@ -46,6 +51,8 @@ contract HelperConfig is Script {
     function getTestnetConfig() public pure returns (NetworkConfig memory) {
         return
             NetworkConfig({
+                name: NAME,
+                symbol: SYMBOL,
                 initialOwner: 0xCbA52038BF0814bC586deE7C061D6cb8B203f8e1,
                 feeAddress: 0xCbA52038BF0814bC586deE7C061D6cb8B203f8e1,
                 tokenAddress: 0x09601E2bfA5b0101e0ba151541d95646B1eeE381,
@@ -56,6 +63,8 @@ contract HelperConfig is Script {
     function getMainnetConfig() public pure returns (NetworkConfig memory) {
         return
             NetworkConfig({
+                name: NAME,
+                symbol: SYMBOL,
                 initialOwner: 0x4671a210C4CF44C43dC5E44DAf68e64D46cdc703,
                 feeAddress: 0x0cf66382d52C2D6c1D095c536c16c203117E2B2f,
                 tokenAddress: 0x2aC895fEba458B42884DCbCB47D57e44c3a303c8,
@@ -103,6 +112,8 @@ contract HelperConfig is Script {
 
         return
             NetworkConfig({
+                name: NAME,
+                symbol: SYMBOL,
                 initialOwner: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266,
                 feeAddress: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266,
                 tokenAddress: address(token),
@@ -113,6 +124,8 @@ contract HelperConfig is Script {
     function getLocalConfig() public pure returns (NetworkConfig memory) {
         return
             NetworkConfig({
+                name: NAME,
+                symbol: SYMBOL,
                 initialOwner: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266,
                 feeAddress: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266,
                 tokenAddress: 0x2aC895fEba458B42884DCbCB47D57e44c3a303c8,

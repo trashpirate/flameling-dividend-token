@@ -15,6 +15,8 @@ contract TestHelperConfig is Test {
             .getMainnetConfig();
 
         (
+            ,
+            ,
             address initialOwner,
             address feeAddress,
             address tokenAddress,
@@ -33,6 +35,8 @@ contract TestHelperConfig is Test {
             .getTestnetConfig();
 
         (
+            ,
+            ,
             address initialOwner,
             address feeAddress,
             address tokenAddress,
@@ -51,6 +55,8 @@ contract TestHelperConfig is Test {
             .getLocalConfig();
 
         (
+            ,
+            ,
             address initialOwner,
             address feeAddress,
             address tokenAddress,
@@ -69,6 +75,8 @@ contract TestHelperConfig is Test {
             .getAnvilConfig();
 
         (
+            ,
+            ,
             address initialOwner,
             address feeAddress,
             address tokenAddress,

@@ -170,7 +170,7 @@ contract TestDividendToken is TestInitialized {
             );
         }
 
-        assertEq(token.getNextIndexToProcess(), 5);
+        assertEq(token.getLastIndexProcessed(), 5);
     }
 
     function test__GetDividendAccountInidex() public {

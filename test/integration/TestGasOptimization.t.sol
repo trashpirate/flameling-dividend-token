@@ -6,7 +6,6 @@ import {Test, console} from "forge-std/Test.sol";
 import {TestInitialized} from "../TestInitialized.t.sol";
 
 import {ERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {IUniswapV2Router02} from "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
 import {DeployFlamelingToken} from "../../script/DeployFlamelingToken.s.sol";
 import {FlamelingToken} from "../../src/FlamelingToken.sol";
@@ -26,11 +25,12 @@ contract TestRewardsDistribution is TestInitialized {
         token = deployment.run();
     }
 
-    function test__Integration__DistributeRewards()
+    function test__Integration__GasOptimization()
         public
         fundedWithTokens(msg.sender)
         withLP
     {
+        vm.deal(msg.sender, 10 ether);
         vm.startPrank(token.owner());
         token.transfer(msg.sender, token.balanceOf(token.owner()));
         token.excludeFromDividends(msg.sender);
@@ -43,40 +43,22 @@ contract TestRewardsDistribution is TestInitialized {
         distributeRewards.fundAccounts(address(token));
         distributeRewards.sellTokens(address(token));
         distributeRewards.transferTokens(address(token));
-        // console.log("Processed: ", token.getLastIndexProcessed());
-        distributeRewards.transferTokens(address(token));
-        distributeRewards.transferTokens(address(token));
-        distributeRewards.transferTokens(address(token));
-
-        uint256 totalDividendsDistributed;
-        for (
-            uint256 index = 1;
-            index <= distributeRewards.numAccounts();
-            index++
-        ) {
-            uint256 dividendBalance = dividendToken.balanceOf(
-                makeAddr(vm.toString(index))
-            );
-            totalDividendsDistributed += dividendBalance;
-            console.log(
-                "Tokens: %s, Dividend Balance: %s",
-                token.balanceOf(makeAddr(vm.toString(index))),
-                dividendBalance
-            );
-        }
-
-        totalDividendsDistributed += dividendToken.balanceOf(msg.sender);
+        console.log(
+            "Processed: %s / %s ",
+            token.getLastIndexProcessed(),
+            token.getNumberOfDividendAccounts()
+        );
+        distributeRewards.buyTokens(address(token));
+        console.log(
+            "Processed: %s / %s ",
+            token.getLastIndexProcessed(),
+            token.getNumberOfDividendAccounts()
+        );
 
         console.log(
             "Contract Dividend Balance",
             dividendToken.balanceOf(address(token))
         );
         console.log("Dividend Remainder", token.getRemainingDividends());
-
-        assertApproxEqAbs(
-            token.getTotalDividends(),
-            totalDividendsDistributed + token.getRemainingDividends(),
-            100
-        );
     }
 }

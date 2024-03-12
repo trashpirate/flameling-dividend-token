@@ -64,14 +64,13 @@ contract FlamelingToken is ERC20, DividendShares {
     /// @param initialOwner ownerhip is transfered to this address after creation
     /// @dev inherits from Openzeppelin ERC20 and Ownable
     constructor(
+        string memory name,
+        string memory symbol,
         address initialOwner,
         address baseFeeAddress,
         address dividendToken,
         address routerV2
-    )
-        ERC20("FlamelingToken", "0x77")
-        DividendShares(msg.sender, dividendToken)
-    {
+    ) ERC20(name, symbol) DividendShares(msg.sender, dividendToken) {
         s_baseFeeAddress = baseFeeAddress;
 
         s_routerV2 = IUniswapV2Router02(routerV2);
@@ -93,8 +92,6 @@ contract FlamelingToken is ERC20, DividendShares {
         _mint(initialOwner, 1_000_000_000 * 10 ** decimals());
         transferOwnership(initialOwner);
     }
-
-    receive() external payable {}
 
     /// @notice Sets fee address
     /// @param baseFeeAddress fee address for operations fee
@@ -304,13 +301,8 @@ contract FlamelingToken is ERC20, DividendShares {
     }
 
     /// @notice Returns whether address is excluded from fee
-    function getExcludedFromFee(address account) external view returns (bool) {
+    function isExcludedFromFee(address account) external view returns (bool) {
         return s_isExcludedFromFees[account];
-    }
-
-    /// @notice Returns total fees pending
-    function getFeesPending() public view returns (uint256) {
-        return balanceOf(address(this));
     }
 
     /// @notice Returns base fees pending
@@ -342,13 +334,4 @@ contract FlamelingToken is ERC20, DividendShares {
     function getSwapThreshold() public view returns (uint256) {
         return s_swapThreshold;
     }
-
-    //     function withdrawETH() external onlyOwner {
-    //     (bool success, )=address(owner()).call{value: address(this).balance}("");
-    //     require(success, "Failed in withdrawal");
-    // }
-    // function withdrawToken(address token) external onlyOwner{
-    //     require(address(this) != token, "Not allowed");
-    //     IERC20(token).safeTransfer(owner(), IERC20(token).balanceOf(address(this)));
-    // }
 }
