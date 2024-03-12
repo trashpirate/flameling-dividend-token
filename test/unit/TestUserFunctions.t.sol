@@ -10,6 +10,7 @@ import {IUniswapV2Router02} from "@uniswap/v2-periphery/contracts/interfaces/IUn
 
 import {DeployFlamelingToken} from "../../script/DeployFlamelingToken.s.sol";
 import {FlamelingToken} from "../../src/FlamelingToken.sol";
+import {DividendShares} from "./../../src/DividendShares.sol";
 
 contract TestUserFunctions is TestInitialized {
     event Transfer(address indexed from, address indexed to, uint256 amount);
@@ -18,7 +19,7 @@ contract TestUserFunctions is TestInitialized {
         address indexed spender,
         uint256 value
     );
-    event ClaimedDividends(address indexed sender, uint256 amount);
+    event DividendsWithdrawn(address indexed sender, uint256 amount);
 
     function calcDividendsOf(address account) public view returns (uint256) {
         uint256 totalDividends = token.getTotalDividends();
@@ -27,14 +28,14 @@ contract TestUserFunctions is TestInitialized {
         return dividendsToClaim;
     }
 
-    function test__Unit__Approval() public fundedWithTokens(USER1) {
+    function test__Approval() public fundedWithTokens(USER1) {
         vm.prank(USER1);
         token.approve(SPENDER, SEND_TOKENS);
 
         assertEq(token.allowance(USER1, SPENDER), SEND_TOKENS);
     }
 
-    function test__Unit__EmitEvent__Approval() public fundedWithTokens(USER1) {
+    function test__EmitEvent__Approval() public fundedWithTokens(USER1) {
         vm.expectEmit(true, true, true, true);
         emit Approval(USER1, SPENDER, SEND_TOKENS);
 
@@ -42,7 +43,7 @@ contract TestUserFunctions is TestInitialized {
         token.approve(SPENDER, SEND_TOKENS);
     }
 
-    function test__Unit__Transfer()
+    function test__Transfer()
         public
         fundedWithTokens(USER1)
         fundedWithTokens(USER2)
@@ -56,7 +57,7 @@ contract TestUserFunctions is TestInitialized {
         assertEq(token.balanceOf(USER2), endingBalanceUser2);
     }
 
-    function test__Unit__EmitEvent__Transfer()
+    function test__EmitEvent__Transfer()
         public
         fundedWithTokens(USER1)
         fundedWithTokens(USER2)
@@ -69,7 +70,7 @@ contract TestUserFunctions is TestInitialized {
         token.transfer(USER2, SEND_TOKENS);
     }
 
-    function test__Unit__EmitEvent__TransferFrom()
+    function test__EmitEvent__TransferFrom()
         public
         fundedWithTokens(USER1)
         fundedWithTokens(USER2)
@@ -84,7 +85,7 @@ contract TestUserFunctions is TestInitialized {
         token.transferFrom(USER1, USER2, SEND_TOKENS);
     }
 
-    function test__Unit__BurnTokens() public fundedWithTokens(USER1) {
+    function test__BurnTokens() public fundedWithTokens(USER1) {
         uint256 endingBalanceUser = token.balanceOf(USER1) - SEND_TOKENS;
 
         vm.prank(USER1);
@@ -94,21 +95,21 @@ contract TestUserFunctions is TestInitialized {
         assertEq(token.balanceOf(BURN_ADDRESS), SEND_TOKENS);
     }
 
-    function test__Unit__SellTokens() public fundedWithTokens(USER1) withLP {
+    function test__SellTokens() public fundedWithTokens(USER1) withLP {
         uint256 endingBalanceUser1 = token.balanceOf(USER1) - SEND_TOKENS;
         sellTokens(USER1, SEND_TOKENS);
 
         assertEq(token.balanceOf(USER1), endingBalanceUser1);
     }
 
-    function test__Unit__BuyTokens() public fundedWithETH(USER1) withLP {
+    function test__BuyTokens() public fundedWithETH(USER1) withLP {
         uint256 fee = (SEND_TOKENS * token.getTotalTransactionFee()) / 10000;
         buyTokens(USER1, SEND_TOKENS);
 
         assertApproxEqAbs(token.balanceOf(USER1), SEND_TOKENS - fee, 10 ** 9);
     }
 
-    function test__Unit__DistributesDividendsOnSwaps()
+    function test__DistributesDividendsOnSwaps()
         public
         fundedWithTokens(USER1)
         fundedWithTokens(USER2)
@@ -179,7 +180,7 @@ contract TestUserFunctions is TestInitialized {
         );
     }
 
-    function test__Unit__DoesNotDistributeDividendsBelowTreshold()
+    function test__DoesNotDistributeDividendsBelowTreshold()
         public
         fundedWithTokens(USER1)
         withLP
@@ -194,7 +195,7 @@ contract TestUserFunctions is TestInitialized {
         assertEq(IERC20(token.getDividendToken()).balanceOf(USER1), 0);
     }
 
-    function test__Unit__CanWithdrawDividends()
+    function test__CanWithdrawDividends()
         public
         fundedWithTokens(USER1)
         fundedWithETH(USER1)
@@ -241,7 +242,7 @@ contract TestUserFunctions is TestInitialized {
         );
     }
 
-    function test__Unit__EmitEvent__withdrawDividends()
+    function test__EmitEvent__withdrawDividends()
         public
         fundedWithTokens(USER1)
         fundedWithETH(USER1)
@@ -259,13 +260,13 @@ contract TestUserFunctions is TestInitialized {
         uint256 dividends = calcDividendsOf(USER1);
 
         vm.expectEmit(true, false, false, false);
-        emit ClaimedDividends(USER1, dividends);
+        emit DividendsWithdrawn(USER1, dividends);
 
         vm.prank(USER1);
         token.withdrawDividends();
     }
 
-    function test__Unit__RevertsWhen__NoClaimableDividends()
+    function test__RevertsWhen__NoClaimableDividendsZeroContractBalance()
         public
         fundedWithTokens(USER1)
         fundedWithETH(USER1)
@@ -279,12 +280,43 @@ contract TestUserFunctions is TestInitialized {
         buyTokens(USER1, SEND_TOKENS);
         sellTokens(USER1, SEND_TOKENS);
 
-        vm.expectRevert();
+        vm.expectRevert(
+            DividendShares.DividendShares__NoDividendsToClaim.selector
+        );
         vm.prank(USER1);
         token.withdrawDividends();
     }
 
-    function test__Unit__RevertsWhen__NotDividendEligible()
+    function test__RevertsWhen__NoClaimableDividendsInsufficientContractBalance()
+        public
+        fundedWithTokens(USER1)
+        fundedWithETH(USER1)
+        withLP
+    {
+        sellTokens(USER1, SEND_TOKENS);
+        buyTokens(USER1, SEND_TOKENS);
+        sellTokens(USER1, SEND_TOKENS);
+        sellTokens(USER1, SEND_TOKENS);
+
+        console.log(
+            "Dividend Contract Balance: ",
+            toDecimals(
+                IERC20(token.getDividendToken()).balanceOf(address(token)),
+                18
+            )
+        );
+        console.log(
+            "Dividend User Balance: ",
+            toDecimals(IERC20(token.getDividendToken()).balanceOf(USER1), 18)
+        );
+        vm.expectRevert(
+            DividendShares.DividendShares__NoDividendsToClaim.selector
+        );
+        vm.prank(USER1);
+        token.withdrawDividends();
+    }
+
+    function test__RevertsWhen__NotDividendEligible()
         public
         fundedWithTokens(USER1)
         fundedWithETH(USER1)
@@ -308,7 +340,7 @@ contract TestUserFunctions is TestInitialized {
         token.withdrawDividends();
     }
 
-    function test__Unit__RevertsWhen__InsufficientBalance()
+    function test__RevertsWhen__InsufficientBalance()
         public
         fundedWithTokens(USER1)
     {
@@ -317,7 +349,7 @@ contract TestUserFunctions is TestInitialized {
         token.transfer(USER2, (STARTING_BALANCE * 1200) / 1000);
     }
 
-    function test__Unit__RevertsWhen__ReceiverIsZeroAddress()
+    function test__RevertsWhen__ReceiverIsZeroAddress()
         public
         fundedWithTokens(USER1)
     {
@@ -326,7 +358,7 @@ contract TestUserFunctions is TestInitialized {
         token.transfer(address(0), SEND_TOKENS);
     }
 
-    function test__Unit__RevertsWhen__SenderIsZeroAddress()
+    function test__RevertsWhen__SenderIsZeroAddress()
         public
         fundedWithTokens(USER1)
     {

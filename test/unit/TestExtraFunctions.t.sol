@@ -15,7 +15,7 @@ import {IUniswapV2Router02} from "@uniswap/v2-periphery/contracts/interfaces/IUn
 contract TestExtraFunctions is TestInitialized {
     event DividendsDistributed(uint256 indexed amount);
 
-    function test__Unit__FeesPending() public fundedWithTokens(USER1) withLP {
+    function test__FeesPending() public fundedWithTokens(USER1) withLP {
         uint256 totalTxFee = token.getTotalTransactionFee();
         uint256 totalFees = (SEND_TOKENS * totalTxFee) / 10000;
 
@@ -28,7 +28,7 @@ contract TestExtraFunctions is TestInitialized {
         );
     }
 
-    function test__Unit__CollectsBaseFee()
+    function test__CollectsBaseFee()
         public
         fundedWithTokens(USER1)
         fundedWithETH(USER1)
@@ -62,7 +62,7 @@ contract TestExtraFunctions is TestInitialized {
         );
     }
 
-    function test__Unit__DistributesRewards()
+    function test__DistributesRewards()
         public
         fundedWithTokens(USER1)
         fundedWithTokens(USER2)
@@ -111,7 +111,7 @@ contract TestExtraFunctions is TestInitialized {
         assertEq(dividendBalance3, dividendBalance2);
     }
 
-    // function test__Unit__EmitEvent_DividendsDistributed() public tokenFunded ETHfunded withLP {
+    // function test__EmitEvent_DividendsDistributed() public tokenFunded ETHfunded withLP {
     //     // SEND_TOKENS = 1_000_000
     //     // 4% of 1_000_000 = 40_000
     //     sellTokens(USER1, SEND_TOKENS); // 40_000
@@ -144,17 +144,4 @@ contract TestExtraFunctions is TestInitialized {
     //     router.swapExactTokensForETHSupportingFeeOnTransferTokens(SEND_TOKENS, 0, path2, USER1, block.timestamp);
     //     vm.stopPrank();
     // }
-
-    function test__Unit__NumberOfDividendAccounts() public {
-        uint256 NUM = 10;
-        vm.startPrank(token.owner());
-        for (uint256 index = 0; index < NUM; index++) {
-            address user = makeAddr(vm.toString(100 + index));
-            token.transfer(user, SEND_TOKENS);
-        }
-        vm.stopPrank();
-
-        uint256 numHolders = token.getNumberOfDividendAccounts();
-        assertEq(numHolders, NUM);
-    }
 }

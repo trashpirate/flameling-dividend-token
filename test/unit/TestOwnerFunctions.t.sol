@@ -17,26 +17,57 @@ contract TestOwnerFunctions is TestInitialized {
     uint256 constant NEW_THRESHOLD = 80_000 * 10 ** 18;
 
     event BaseFeeAddressUpdated(address indexed sender, address baseFeeAddress);
-    event DividendTokenUpdated(address indexed sender, address dividendToken);
+
     event BaseFeeUpdated(address indexed sender, uint256 baseFee);
     event DividendFeeUpdated(address indexed sender, uint256 rewardsFee);
     event ExcludedFromFees(address indexed account, bool isExcluded);
     event SwapThresholdUpdated(address indexed sender, uint256 swapThreshold);
+    event AMMPairUpdated(address indexed ammpair, bool value);
 
-    function test__Unit__ExcludeFromFee() public {
+    /** UDPATE AMM PAIR */
+    function test__UpdateAmmPair() public {
+        address newPair = makeAddr("some-pair");
+        vm.prank(token.owner());
+        token.updateAMMPair(newPair, true);
+
+        assertEq(token.getAMMPair(newPair), true);
+    }
+
+    function test__EmitsEvent__UpdateAmmPair() public {
+        address newPair = makeAddr("some-pair");
+
+        vm.expectEmit(true, true, true, true);
+        emit AMMPairUpdated(newPair, true);
+
+        vm.prank(token.owner());
+        token.updateAMMPair(newPair, true);
+    }
+
+    function test__RevertWhen__UniswapPairChanged() public {
+        address newPair = token.getPairV2Address();
+
+        vm.prank(token.owner());
+        vm.expectRevert(
+            FlamelingToken.FlamelingToken__AMMPairAlreadySet.selector
+        );
+        token.updateAMMPair(newPair, true);
+    }
+
+    /** EXCLUDE FROM FEE */
+    function test__ExcludeFromFee() public {
         vm.prank(token.owner());
         token.excludeFromFees(USER, true);
 
         assertEq(token.getExcludedFromFee(USER), true);
     }
 
-    function test__Unit__RevertWhen_NotOwnerExcludesFromFee() public {
+    function test__RevertWhen_NotOwnerExcludesFromFee() public {
         vm.expectRevert();
         vm.prank(USER);
         token.excludeFromFees(USER, true);
     }
 
-    function test__Unit__EmitEvent_ExcludedFromFees() public {
+    function test__EmitEvent_ExcludedFromFees() public {
         vm.expectEmit(true, true, true, true);
         emit ExcludedFromFees(USER, true);
 
@@ -44,20 +75,21 @@ contract TestOwnerFunctions is TestInitialized {
         token.excludeFromFees(USER, true);
     }
 
-    function test__Unit__UpdateFeeAddress() public {
+    /** UDPATE FEE ADDRESS */
+    function test__UpdateFeeAddress() public {
         vm.prank(token.owner());
         token.updateFeeAddress(NEW_FEE_ADDRESS);
 
         assertEq(token.getFeeAddress(), NEW_FEE_ADDRESS);
     }
 
-    function test__Unit__RevertWhen_NotOwnerUpdatesFeeAddress() public {
+    function test__RevertWhen_NotOwnerUpdatesFeeAddress() public {
         vm.expectRevert();
         vm.prank(USER);
         token.updateFeeAddress(NEW_FEE_ADDRESS);
     }
 
-    function test__Unit__EmitEvent_BaseFeeAddressUpdated() public {
+    function test__EmitEvent_BaseFeeAddressUpdated() public {
         vm.expectEmit(true, true, true, true);
         emit BaseFeeAddressUpdated(token.owner(), NEW_FEE_ADDRESS);
 
@@ -65,41 +97,21 @@ contract TestOwnerFunctions is TestInitialized {
         token.updateFeeAddress(NEW_FEE_ADDRESS);
     }
 
-    function test__Unit__UpdateDividendToken() public {
-        vm.prank(token.owner());
-        token.updateDividendToken(NEW_TOKEN_ADDRESS);
-
-        assertEq(token.getDividendToken(), NEW_TOKEN_ADDRESS);
-    }
-
-    function test__Unit__RevertWhen_NotOwnerUpdatesDividendToken() public {
-        vm.expectRevert();
-        vm.prank(USER);
-        token.updateDividendToken(NEW_TOKEN_ADDRESS);
-    }
-
-    function test__Unit__EmitEvent_DividendTokenUpdated() public {
-        vm.expectEmit(true, true, true, true);
-        emit DividendTokenUpdated(token.owner(), NEW_TOKEN_ADDRESS);
-
-        vm.prank(token.owner());
-        token.updateDividendToken(NEW_TOKEN_ADDRESS);
-    }
-
-    function test__Unit__UpdateBaseFee() public {
+    /** UPDATE BASE FEE */
+    function test__UpdateBaseFee() public {
         vm.prank(token.owner());
         token.updateBaseFee(NEW_FEE);
 
         assertEq(token.getBaseFee(), NEW_FEE);
     }
 
-    function test__Unit__RevertWhen_NotOwnerUpdatesBaseFee() public {
+    function test__RevertWhen_NotOwnerUpdatesBaseFee() public {
         vm.expectRevert();
         vm.prank(USER);
         token.updateBaseFee(NEW_FEE);
     }
 
-    function test__Unit__EmitEvent_BaseFeeUpdated() public {
+    function test__EmitEvent_BaseFeeUpdated() public {
         vm.expectEmit(true, true, true, true);
         emit BaseFeeUpdated(token.owner(), NEW_FEE);
 
@@ -107,20 +119,21 @@ contract TestOwnerFunctions is TestInitialized {
         token.updateBaseFee(NEW_FEE);
     }
 
-    function test__Unit__UpdateDividendFee() public {
+    /** UPDATE DIVIDEND FEE */
+    function test__UpdateDividendFee() public {
         vm.prank(token.owner());
         token.updateDividendFee(NEW_FEE);
 
         assertEq(token.getDividendFee(), NEW_FEE);
     }
 
-    function test__Unit__RevertWhen_NotOwnerUpdatesDividendFee() public {
+    function test__RevertWhen_NotOwnerUpdatesDividendFee() public {
         vm.expectRevert();
         vm.prank(USER);
         token.updateDividendFee(NEW_FEE);
     }
 
-    function test__Unit__EmitEvent_DividendFeeUpdated() public {
+    function test__EmitEvent_DividendFeeUpdated() public {
         vm.expectEmit(true, true, true, true);
         emit DividendFeeUpdated(token.owner(), NEW_FEE);
 
@@ -128,14 +141,15 @@ contract TestOwnerFunctions is TestInitialized {
         token.updateDividendFee(NEW_FEE);
     }
 
-    function test__Unit__UpdateSwapThreshold() public {
+    /** UDPATE SWAP THRESHOLD */
+    function test__UpdateSwapThreshold() public {
         vm.prank(token.owner());
         token.updateSwapThreshold(NEW_THRESHOLD);
 
         assertEq(token.getSwapThreshold(), NEW_THRESHOLD);
     }
 
-    function test__Unit__RevertWhen_SwapThresholdTooSmall() public {
+    function test__RevertWhen_SwapThresholdTooSmall() public {
         uint256 smallThreshold = 20_000 * 10 ** 18;
 
         vm.prank(token.owner());
@@ -143,13 +157,13 @@ contract TestOwnerFunctions is TestInitialized {
         token.updateSwapThreshold(smallThreshold);
     }
 
-    function test__Unit__RevertWhen_NotOwnerUpdatesSwapThreshold() public {
+    function test__RevertWhen_NotOwnerUpdatesSwapThreshold() public {
         vm.expectRevert();
         vm.prank(USER);
         token.updateSwapThreshold(NEW_THRESHOLD);
     }
 
-    function test__Unit__EmitEvent_SwapThresholdUpdated() public {
+    function test__EmitEvent_SwapThresholdUpdated() public {
         vm.expectEmit(true, true, true, true);
         emit SwapThresholdUpdated(token.owner(), NEW_THRESHOLD);
 
@@ -157,27 +171,29 @@ contract TestOwnerFunctions is TestInitialized {
         token.updateSwapThreshold(NEW_THRESHOLD);
     }
 
-    function test__Unit__TransferOwnership() public {
+    /** TRANSFER OWNERSHIP */
+    function test__TransferOwnership() public {
         vm.prank(token.owner());
         token.transferOwnership(NEW_OWNER);
 
         assertEq(token.owner(), NEW_OWNER);
     }
 
-    function test__Unit__RevertWhen_NotOwnerTransfersOwnership() public {
+    function test__RevertWhen_NotOwnerTransfersOwnership() public {
         vm.expectRevert();
         vm.prank(USER);
         token.transferOwnership(USER);
     }
 
-    function test__Unit__RenounceOwnership() public {
+    /** RENOUNCE OWNERSHIP */
+    function test__RenounceOwnership() public {
         vm.prank(token.owner());
         token.renounceOwnership();
 
         assertEq(token.owner(), address(0));
     }
 
-    function test__Unit__RevertWhen_NotOwnerRenouncesOwnership() public {
+    function test__RevertWhen_NotOwnerRenouncesOwnership() public {
         vm.expectRevert();
         vm.prank(USER);
         token.renounceOwnership();

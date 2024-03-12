@@ -11,7 +11,7 @@ anvil :; anvil -m 'test test test test test test test test test test test junk'
 fork :; @anvil --fork-url ${RPC_BSC} --fork-block-number 35267180 --fork-chain-id 56 --chain-id 123
 
 coverage:; @forge coverage --contracts FlamelingToken.sol
-coverage-w:; @forge coverage --contracts FlamelingToken.sol --debug > coverage.txt
+coverage-w:; @forge coverage --contracts FlamelingToken.sol --report debug > coverage.txt
 
 # Localhost deployment
 # use --legacy for BSC

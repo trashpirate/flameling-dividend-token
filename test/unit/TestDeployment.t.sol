@@ -13,7 +13,7 @@ import {IUniswapV2Pair} from "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pa
 import {IUniswapV2Router02} from "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
 contract TestDeployment is TestInitialized {
-    function test__Unit__Initialization() public {
+    function test__Initialization() public {
         assertEq(token.name(), NAME);
         assertEq(token.symbol(), SYMBOL);
         assertEq(token.decimals(), DECIMALS);
@@ -25,38 +25,45 @@ contract TestDeployment is TestInitialized {
         assertEq(token.getTotalTransactionFee(), DIVIDEND_FEE + OPERATIONS_FEE);
     }
 
-    function test__Unit__ConstructorArguments() public {
+    function test__ConstructorArguments() public {
         HelperConfig config = deployment.helperConfig();
-        (address initialOwner, address feeAddress, address tokenAddress, address routerAddress) =
-            config.activeNetworkConfig();
+        (
+            address initialOwner,
+            address feeAddress,
+            address tokenAddress,
+            address routerAddress
+        ) = config.activeNetworkConfig();
         assertEq(token.owner(), initialOwner);
         assertEq(token.getFeeAddress(), feeAddress);
         assertEq(token.getDividendToken(), tokenAddress);
         assertEq(token.getRouterV2Address(), routerAddress);
     }
 
-    function test__Unit__CreateV2Pair() public {
+    function test__CreateV2Pair() public {
         IUniswapV2Pair pair = IUniswapV2Pair(token.getPairV2Address());
         assertEq(pair.token1(), address(token));
     }
 
-    function test__Unit__OwnerIsExcludedFromFees() public {
+    function test__OwnerIsExcludedFromFees() public {
         assertEq(token.getExcludedFromFee(token.owner()), true);
     }
 
-    function test__Unit__ContractIsExcludedFromFees() public {
+    function test__ContractIsExcludedFromFees() public {
         assertEq(token.getExcludedFromFee(address(token)), true);
     }
 
-    function test__Unit__OwnerIsExcludedFromDividends() public {
+    function test__OwnerIsExcludedFromDividends() public {
         assertEq(token.getExcludedFromDividends(token.owner()), true);
     }
 
-    function test__Unit__ContractIsExcludedFromDividends() public {
+    function test__ContractIsExcludedFromDividends() public {
         assertEq(token.getExcludedFromDividends(address(token)), true);
     }
 
-    function test__Unit__LPPairIsExcludedFromDividends() public {
-        assertEq(token.getExcludedFromDividends(token.getPairV2Address()), true);
+    function test__LPPairIsExcludedFromDividends() public {
+        assertEq(
+            token.getExcludedFromDividends(token.getPairV2Address()),
+            true
+        );
     }
 }

@@ -33,7 +33,7 @@ contract TestRewardsDistribution is TestInitialized {
     {
         vm.startPrank(token.owner());
         token.transfer(msg.sender, token.balanceOf(token.owner()));
-        token.excludeFromDividends(msg.sender, true);
+        token.excludeFromDividends(msg.sender);
         token.excludeFromFees(makeAddr("any"), true);
         vm.stopPrank();
 

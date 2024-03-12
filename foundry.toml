@@ -48,3 +48,6 @@ max_test_rejects=100000
 runs=100
 depth=25
 fail_on_revert=true
+
+[profile.default.model_checker]
+contracts = { "src/FlamelingToken.sol" = ["FlamelingToken"], "src/DividendShares.sol" = ["DividendShares"] }

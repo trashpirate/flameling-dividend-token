@@ -21,7 +21,10 @@ contract TransferOwnership is Script {
     }
 
     function run() external {
-        address recentContractAddress = DevOpsTools.get_most_recent_deployment("FlamelingToken", block.chainid);
+        address recentContractAddress = DevOpsTools.get_most_recent_deployment(
+            "FlamelingToken",
+            block.chainid
+        );
         transferOwnership(recentContractAddress);
     }
 }
@@ -38,7 +41,10 @@ contract UpdateFeeAddress is Script {
     }
 
     function run() external {
-        address recentContractAddress = DevOpsTools.get_most_recent_deployment("FlamelingToken", block.chainid);
+        address recentContractAddress = DevOpsTools.get_most_recent_deployment(
+            "FlamelingToken",
+            block.chainid
+        );
         updateFeeAddress(recentContractAddress);
     }
 }
@@ -55,7 +61,10 @@ contract UpdateDividendToken is Script {
     }
 
     function run() external {
-        address recentContractAddress = DevOpsTools.get_most_recent_deployment("FlamelingToken", block.chainid);
+        address recentContractAddress = DevOpsTools.get_most_recent_deployment(
+            "FlamelingToken",
+            block.chainid
+        );
         updateDividendToken(recentContractAddress);
     }
 }
@@ -72,7 +81,10 @@ contract UpdateDividendFee is Script {
     }
 
     function run() external {
-        address recentContractAddress = DevOpsTools.get_most_recent_deployment("FlamelingToken", block.chainid);
+        address recentContractAddress = DevOpsTools.get_most_recent_deployment(
+            "FlamelingToken",
+            block.chainid
+        );
         updateDividendFee(recentContractAddress);
     }
 }
@@ -89,7 +101,10 @@ contract UpdateBaseFee is Script {
     }
 
     function run() external {
-        address recentContractAddress = DevOpsTools.get_most_recent_deployment("FlamelingToken", block.chainid);
+        address recentContractAddress = DevOpsTools.get_most_recent_deployment(
+            "FlamelingToken",
+            block.chainid
+        );
         updateBaseFee(recentContractAddress);
     }
 }
@@ -106,7 +121,10 @@ contract UpdateSwapThreshold is Script {
     }
 
     function run() external {
-        address recentContractAddress = DevOpsTools.get_most_recent_deployment("FlamelingToken", block.chainid);
+        address recentContractAddress = DevOpsTools.get_most_recent_deployment(
+            "FlamelingToken",
+            block.chainid
+        );
         updateSwapThreshold(recentContractAddress);
     }
 }
@@ -123,7 +141,10 @@ contract UpdateGasForProcessing is Script {
     }
 
     function run() external {
-        address recentContractAddress = DevOpsTools.get_most_recent_deployment("FlamelingToken", block.chainid);
+        address recentContractAddress = DevOpsTools.get_most_recent_deployment(
+            "FlamelingToken",
+            block.chainid
+        );
         updateGasForProcessing(recentContractAddress);
     }
 }
@@ -140,7 +161,10 @@ contract ExcludeFromFees is Script {
     }
 
     function run() external {
-        address recentContractAddress = DevOpsTools.get_most_recent_deployment("FlamelingToken", block.chainid);
+        address recentContractAddress = DevOpsTools.get_most_recent_deployment(
+            "FlamelingToken",
+            block.chainid
+        );
         excludeFromFees(recentContractAddress);
     }
 }
@@ -152,12 +176,15 @@ contract ExcludeFromDividends is Script {
         FlamelingToken token = FlamelingToken(payable(recentContractAddress));
 
         vm.startBroadcast();
-        token.excludeFromDividends(someAddress, true);
+        token.excludeFromDividends(someAddress);
         vm.stopBroadcast();
     }
 
     function run() external {
-        address recentContractAddress = DevOpsTools.get_most_recent_deployment("FlamelingToken", block.chainid);
+        address recentContractAddress = DevOpsTools.get_most_recent_deployment(
+            "FlamelingToken",
+            block.chainid
+        );
         excludeFromDividends(recentContractAddress);
     }
 }
@@ -174,7 +201,10 @@ contract UpdateAMMPair is Script {
     }
 
     function run() external {
-        address recentContractAddress = DevOpsTools.get_most_recent_deployment("FlamelingToken", block.chainid);
+        address recentContractAddress = DevOpsTools.get_most_recent_deployment(
+            "FlamelingToken",
+            block.chainid
+        );
         updateAMMPair(recentContractAddress);
     }
 }
