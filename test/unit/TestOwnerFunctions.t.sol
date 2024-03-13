@@ -6,6 +6,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {TestInitialized} from "../TestInitialized.t.sol";
 
 import {ERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {DeployFlamelingToken} from "../../script/DeployFlamelingToken.s.sol";
 import {FlamelingToken} from "../../src/FlamelingToken.sol";
 
@@ -15,6 +16,7 @@ contract TestOwnerFunctions is TestInitialized {
     address USER = makeAddr("user1");
 
     uint256 constant NEW_THRESHOLD = 80_000 * 10 ** 18;
+    uint256 constant NEW_MINIMUM = 200_000 ether;
 
     event BaseFeeAddressUpdated(address indexed sender, address baseFeeAddress);
 
@@ -23,6 +25,10 @@ contract TestOwnerFunctions is TestInitialized {
     event ExcludedFromFees(address indexed account, bool isExcluded);
     event SwapThresholdUpdated(address indexed sender, uint256 swapThreshold);
     event AMMPairUpdated(address indexed ammpair, bool value);
+    event MinSharesRequiredUpdated(
+        address indexed sender,
+        uint256 minSharesRequired
+    );
 
     /** UDPATE AMM PAIR */
     function test__UpdateAmmPair() public {
@@ -62,7 +68,12 @@ contract TestOwnerFunctions is TestInitialized {
     }
 
     function test__RevertWhen_NotOwnerExcludesFromFee() public {
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Ownable.OwnableUnauthorizedAccount.selector,
+                USER
+            )
+        );
         vm.prank(USER);
         token.excludeFromFees(USER, true);
     }
@@ -83,8 +94,22 @@ contract TestOwnerFunctions is TestInitialized {
         assertEq(token.getFeeAddress(), NEW_FEE_ADDRESS);
     }
 
+    function test__RevertWhen_FeeAddressIsZero() public {
+        address owner = token.owner();
+        vm.prank(owner);
+        vm.expectRevert(
+            FlamelingToken.FlamelingToken__ZeroAddressNotAllowed.selector
+        );
+        token.updateFeeAddress(address(0));
+    }
+
     function test__RevertWhen_NotOwnerUpdatesFeeAddress() public {
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Ownable.OwnableUnauthorizedAccount.selector,
+                USER
+            )
+        );
         vm.prank(USER);
         token.updateFeeAddress(NEW_FEE_ADDRESS);
     }
@@ -106,7 +131,12 @@ contract TestOwnerFunctions is TestInitialized {
     }
 
     function test__RevertWhen_NotOwnerUpdatesBaseFee() public {
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Ownable.OwnableUnauthorizedAccount.selector,
+                USER
+            )
+        );
         vm.prank(USER);
         token.updateBaseFee(NEW_FEE);
     }
@@ -128,7 +158,12 @@ contract TestOwnerFunctions is TestInitialized {
     }
 
     function test__RevertWhen_NotOwnerUpdatesDividendFee() public {
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Ownable.OwnableUnauthorizedAccount.selector,
+                USER
+            )
+        );
         vm.prank(USER);
         token.updateDividendFee(NEW_FEE);
     }
@@ -139,6 +174,33 @@ contract TestOwnerFunctions is TestInitialized {
 
         vm.prank(token.owner());
         token.updateDividendFee(NEW_FEE);
+    }
+
+    /** UPDATE MIMINUM SHARES REQUIRED */
+    function test__UpdateMinSharesRequired() public {
+        vm.prank(token.owner());
+        token.updateMinSharesRequired(NEW_MINIMUM);
+
+        assertEq(token.getMinSharesRequired(), NEW_MINIMUM);
+    }
+
+    function test__RevertWhen_NotOwnerUpdateMinSharesRequired() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Ownable.OwnableUnauthorizedAccount.selector,
+                USER
+            )
+        );
+        vm.prank(USER);
+        token.updateMinSharesRequired(NEW_MINIMUM);
+    }
+
+    function test__EmitEvent_UpdateMinSharesRequired() public {
+        vm.expectEmit(true, true, true, true);
+        emit MinSharesRequiredUpdated(token.owner(), NEW_MINIMUM);
+
+        vm.prank(token.owner());
+        token.updateMinSharesRequired(NEW_MINIMUM);
     }
 
     /** UDPATE SWAP THRESHOLD */
@@ -153,12 +215,19 @@ contract TestOwnerFunctions is TestInitialized {
         uint256 smallThreshold = 20_000 * 10 ** 18;
 
         vm.prank(token.owner());
-        vm.expectRevert();
+        vm.expectRevert(
+            FlamelingToken.FlamelingToken__SwapThresholdTooSmall.selector
+        );
         token.updateSwapThreshold(smallThreshold);
     }
 
     function test__RevertWhen_NotOwnerUpdatesSwapThreshold() public {
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Ownable.OwnableUnauthorizedAccount.selector,
+                USER
+            )
+        );
         vm.prank(USER);
         token.updateSwapThreshold(NEW_THRESHOLD);
     }
@@ -180,7 +249,12 @@ contract TestOwnerFunctions is TestInitialized {
     }
 
     function test__RevertWhen_NotOwnerTransfersOwnership() public {
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Ownable.OwnableUnauthorizedAccount.selector,
+                USER
+            )
+        );
         vm.prank(USER);
         token.transferOwnership(USER);
     }
@@ -194,7 +268,12 @@ contract TestOwnerFunctions is TestInitialized {
     }
 
     function test__RevertWhen_NotOwnerRenouncesOwnership() public {
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Ownable.OwnableUnauthorizedAccount.selector,
+                USER
+            )
+        );
         vm.prank(USER);
         token.renounceOwnership();
     }

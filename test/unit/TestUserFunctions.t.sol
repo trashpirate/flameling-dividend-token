@@ -6,8 +6,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {TestInitialized} from "../TestInitialized.t.sol";
 
 import {ERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {IUniswapV2Router02} from "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
-
+import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {DeployFlamelingToken} from "../../script/DeployFlamelingToken.s.sol";
 import {FlamelingToken} from "../../src/FlamelingToken.sol";
 import {DividendShares} from "./../../src/DividendShares.sol";
@@ -28,6 +27,7 @@ contract TestUserFunctions is TestInitialized {
         return dividendsToClaim;
     }
 
+    /** APPROVAL */
     function test__Approval() public fundedWithTokens(USER1) {
         vm.prank(USER1);
         token.approve(SPENDER, SEND_TOKENS);
@@ -43,6 +43,7 @@ contract TestUserFunctions is TestInitialized {
         token.approve(SPENDER, SEND_TOKENS);
     }
 
+    /** TRANSFER */
     function test__Transfer()
         public
         fundedWithTokens(USER1)
@@ -70,6 +71,52 @@ contract TestUserFunctions is TestInitialized {
         token.transfer(USER2, SEND_TOKENS);
     }
 
+    function test__RevertsWhen__InsufficientBalance()
+        public
+        fundedWithTokens(USER1)
+    {
+        uint256 transferAmount = token.balanceOf(USER1) + 1000;
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientBalance.selector,
+                USER1,
+                token.balanceOf(USER1),
+                transferAmount
+            )
+        );
+        vm.prank(USER1);
+        token.transfer(USER2, transferAmount);
+    }
+
+    function test__RevertsWhen__ReceiverIsZeroAddress()
+        public
+        fundedWithTokens(USER1)
+    {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InvalidReceiver.selector,
+                address(0)
+            )
+        );
+        vm.prank(USER1);
+        token.transfer(address(0), SEND_TOKENS);
+    }
+
+    function test__RevertsWhen__SenderIsZeroAddress()
+        public
+        fundedWithTokens(USER1)
+    {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InvalidSender.selector,
+                address(0)
+            )
+        );
+        vm.prank(address(0));
+        token.transfer(USER2, SEND_TOKENS);
+    }
+
+    /** TRANSFER FROM */
     function test__EmitEvent__TransferFrom()
         public
         fundedWithTokens(USER1)
@@ -85,6 +132,7 @@ contract TestUserFunctions is TestInitialized {
         token.transferFrom(USER1, USER2, SEND_TOKENS);
     }
 
+    /** BURN TOKENS */
     function test__BurnTokens() public fundedWithTokens(USER1) {
         uint256 endingBalanceUser = token.balanceOf(USER1) - SEND_TOKENS;
 
@@ -95,6 +143,7 @@ contract TestUserFunctions is TestInitialized {
         assertEq(token.balanceOf(BURN_ADDRESS), SEND_TOKENS);
     }
 
+    /** SELL TOKENS */
     function test__SellTokens() public fundedWithTokens(USER1) withLP {
         uint256 endingBalanceUser1 = token.balanceOf(USER1) - SEND_TOKENS;
         sellTokens(USER1, SEND_TOKENS);
@@ -102,13 +151,16 @@ contract TestUserFunctions is TestInitialized {
         assertEq(token.balanceOf(USER1), endingBalanceUser1);
     }
 
+    /** BUY TOKENS */
     function test__BuyTokens() public fundedWithETH(USER1) withLP {
-        uint256 fee = (SEND_TOKENS * token.getTotalTransactionFee()) / 10000;
+        uint256 fee = (SEND_TOKENS *
+            (token.getBaseFee() + token.getDividendFee())) / 10000;
         buyTokens(USER1, SEND_TOKENS);
 
         assertApproxEqAbs(token.balanceOf(USER1), SEND_TOKENS - fee, 10 ** 9);
     }
 
+    /** DISTRIBUTE DIVIDENDS */
     function test__DistributesDividendsOnSwaps()
         public
         fundedWithTokens(USER1)
@@ -125,16 +177,6 @@ contract TestUserFunctions is TestInitialized {
         buyTokens(USER2, transferAmount / 2);
         sellTokens(USER1, transferAmount * 3);
         sellTokens(USER2, transferAmount);
-
-        // address owner = token.owner();
-        // vm.prank(owner);
-        // token.updateGasForProcessing(300000);
-
-        // vm.startPrank(USER2);
-        // uint gasLeft = gasleft();
-        // token.transfer(USER1, transferAmount);
-        // console.log(gasLeft - gasleft());
-        // vm.stopPrank();
 
         uint256 tokenBalance1 = token.balanceOf(USER1);
         uint256 claimedDividends1 = IERC20(token.getDividendToken()).balanceOf(
@@ -195,6 +237,7 @@ contract TestUserFunctions is TestInitialized {
         assertEq(IERC20(token.getDividendToken()).balanceOf(USER1), 0);
     }
 
+    /** MANUALLY WITHDRAW DIVIDENDS */
     function test__CanWithdrawDividends()
         public
         fundedWithTokens(USER1)
@@ -335,35 +378,10 @@ contract TestUserFunctions is TestInitialized {
         sellTokens(USER1, SEND_TOKENS);
         sellTokens(USER1, SEND_TOKENS);
 
-        vm.expectRevert();
+        vm.expectRevert(
+            DividendShares.DividendShares__NotDividendEligible.selector
+        );
         vm.prank(USER3);
         token.withdrawDividends();
-    }
-
-    function test__RevertsWhen__InsufficientBalance()
-        public
-        fundedWithTokens(USER1)
-    {
-        vm.expectRevert();
-        vm.prank(USER1);
-        token.transfer(USER2, (STARTING_BALANCE * 1200) / 1000);
-    }
-
-    function test__RevertsWhen__ReceiverIsZeroAddress()
-        public
-        fundedWithTokens(USER1)
-    {
-        vm.expectRevert();
-        vm.prank(USER1);
-        token.transfer(address(0), SEND_TOKENS);
-    }
-
-    function test__RevertsWhen__SenderIsZeroAddress()
-        public
-        fundedWithTokens(USER1)
-    {
-        vm.expectRevert();
-        vm.prank(address(0));
-        token.transfer(USER2, SEND_TOKENS);
     }
 }

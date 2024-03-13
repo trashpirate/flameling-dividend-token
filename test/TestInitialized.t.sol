@@ -25,7 +25,6 @@ contract TestInitialized is Test {
     uint256 constant TOTAL_SUPPLY = 1_000_000_000 * 10 ** DECIMALS;
     uint256 constant OPERATIONS_FEE = 200;
     uint256 constant DIVIDEND_FEE = 200;
-    uint256 constant MIN_SWAP_RETURN = 641822829098787115019; // 78 flameling tokens per dividend token
 
     address WBNB_FUNDER = 0x9ade1c17d25246c405604344f89E8F23F8c1c632;
     address WBNB = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;

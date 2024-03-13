@@ -11,7 +11,7 @@ import {IUniswapV2Router02} from "@uniswap/v2-periphery/contracts/interfaces/IUn
 
 import {DeployFlamelingToken} from "../../script/DeployFlamelingToken.s.sol";
 import {FlamelingToken} from "../../src/FlamelingToken.sol";
-import {ERC20Token} from "../../src/ERC20Token.sol";
+import {ERC20Token} from "../../mock/ERC20Token.sol";
 import {Handler} from "./handlers/Handler.sol";
 
 contract Invariants is TestInitialized {

@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.20;
+pragma solidity 0.8.20;
 
-// import {console} from "forge-std/Test.sol";
 import {IERC20, ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {DividendShares} from "./DividendShares.sol";
@@ -15,50 +14,37 @@ import {IUniswapV2Router02} from "@uniswap/v2-periphery/contracts/interfaces/IUn
 /// @author Nadina Oates
 /// @notice Contract implementing ERC20 token that pays out dividend rewards from transaction fee
 contract FlamelingToken is ERC20, DividendShares {
-    /**
-     * State Variables
-     */
+    /** CONSTANTS */
     uint256 constant MIN_THRESHOLD = 50_000 * 10 ** 18;
 
-    IUniswapV2Router02 private s_routerV2;
-    address private s_pairV2;
+    /** STATE VARIABLES */
+    IUniswapV2Router02 private immutable s_routerV2;
+    address private immutable s_pairV2;
 
     uint256 private s_baseFee = 200;
     uint256 private s_dividendFee = 200;
-
     uint256 private s_baseFeesPending;
     uint256 private s_dividendFeesPending;
     uint256 private s_swapThreshold = 100_000 * 10 ** 18;
-
     address private s_baseFeeAddress;
-
     bool private s_swapping;
 
     mapping(address => bool) private s_ammPairs;
     mapping(address => bool) private s_isExcludedFromFees;
 
-    /**
-     * Events
-     */
+    /** EVENTS */
     event BaseFeeAddressUpdated(address indexed sender, address baseFeeAddress);
-
     event BaseFeeUpdated(address indexed sender, uint256 baseFee);
     event DividendFeeUpdated(address indexed sender, uint256 dividendFee);
     event ExcludedFromFees(address indexed account, bool isExcluded);
-
     event SwapThresholdUpdated(address indexed sender, uint256 swapThreshold);
     event AMMPairUpdated(address indexed ammpair, bool value);
 
-    /**
-     * Errors
-     */
+    /** ERRORS */
+    error FlamelingToken__ZeroAddressNotAllowed();
     error FlamelingToken__SwapThresholdTooSmall();
     error FlamelingToken__SendingBaseFeeFailed(address receiver, bytes data);
     error FlamelingToken__AMMPairAlreadySet();
-
-    /**
-     * Functions
-     */
 
     /// @notice Constructor
     /// @param initialOwner ownerhip is transfered to this address after creation
@@ -71,6 +57,8 @@ contract FlamelingToken is ERC20, DividendShares {
         address dividendToken,
         address routerV2
     ) ERC20(name, symbol) DividendShares(msg.sender, dividendToken) {
+        if (baseFeeAddress == address(0))
+            revert FlamelingToken__ZeroAddressNotAllowed();
         s_baseFeeAddress = baseFeeAddress;
 
         s_routerV2 = IUniswapV2Router02(routerV2);
@@ -93,9 +81,13 @@ contract FlamelingToken is ERC20, DividendShares {
         transferOwnership(initialOwner);
     }
 
+    /** EXTERNAL FUNCTIONS */
+
     /// @notice Sets fee address
     /// @param baseFeeAddress fee address for operations fee
     function updateFeeAddress(address baseFeeAddress) external onlyOwner {
+        if (baseFeeAddress == address(0))
+            revert FlamelingToken__ZeroAddressNotAllowed();
         s_baseFeeAddress = baseFeeAddress;
         emit BaseFeeAddressUpdated(msg.sender, baseFeeAddress);
     }
@@ -125,174 +117,18 @@ contract FlamelingToken is ERC20, DividendShares {
         emit SwapThresholdUpdated(msg.sender, swapThreshold);
     }
 
-    /// @notice Exludes/includes address from fee
-    /// @param account address to be excluded or included
-    /// @param isExcluded flag for excluded (true) and includes (false)
-    function excludeFromFees(
-        address account,
-        bool isExcluded
-    ) public onlyOwner {
-        s_isExcludedFromFees[account] = isExcluded;
+    /** GETTER FUNCTIONS */
 
-        emit ExcludedFromFees(account, isExcluded);
-    }
-
-    /// @notice Sets AMM Pairs
-    /// @param pair pair address
-    /// @param value flag if traded pair
-    function updateAMMPair(address pair, bool value) public onlyOwner {
-        if (s_ammPairs[pair] == value)
-            revert FlamelingToken__AMMPairAlreadySet();
-        s_ammPairs[pair] = value;
-        excludeFromDividends(pair);
-        emit AMMPairUpdated(pair, value);
-    }
-
-    /** PRIVATE FUNCTIONS */
-
-    function _swapTokenForDividendToken(
-        uint256 amount
-    ) internal returns (bool success) {
-        address[] memory path = new address[](3);
-        path[0] = address(this);
-        path[1] = s_routerV2.WETH();
-        path[2] = address(s_dividendToken);
-
-        _approve(address(this), address(s_routerV2), amount);
-
-        try
-            s_routerV2.swapExactTokensForTokensSupportingFeeOnTransferTokens(
-                amount,
-                0,
-                path,
-                address(this),
-                block.timestamp
-            )
-        {
-            success = true;
-        } catch {
-            success = false;
-        }
-    }
-
-    function _swapAndSendBaseFee(
-        uint256 feeAmount,
-        address feeAccount
-    ) internal returns (bool success) {
-        address[] memory path = new address[](2);
-        path[0] = address(this);
-        path[1] = s_routerV2.WETH();
-
-        _approve(address(this), address(s_routerV2), feeAmount);
-        try
-            s_routerV2.swapExactTokensForETHSupportingFeeOnTransferTokens(
-                feeAmount,
-                0,
-                path,
-                feeAccount,
-                block.timestamp
-            )
-        {
-            success = true;
-        } catch {
-            success = false;
-        }
-    }
-
-    /// @notice Takes fee and transfers tokens
-    /// @param from sender address
-    /// @param to receiver address
-    /// @param amount token amount
-    /// @dev updates transfer function of openzepplin library
-    function _update(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual override {
-        _updateDividends(from);
-        _updateDividends(to);
-
-        if (
-            balanceOf(address(this)) >= s_swapThreshold &&
-            !s_swapping &&
-            !s_ammPairs[from]
-        ) {
-            s_swapping = true;
-            if (s_baseFeesPending > 0) {
-                bool success = _swapAndSendBaseFee(
-                    s_baseFeesPending,
-                    s_baseFeeAddress
-                );
-                if (success) {
-                    s_baseFeesPending = 0;
-                }
-            }
-
-            if (s_dividendFeesPending > 0) {
-                uint256 currentBalance = s_dividendToken.balanceOf(
-                    address(this)
-                );
-                bool success = _swapTokenForDividendToken(
-                    s_dividendFeesPending
-                );
-                if (success) {
-                    uint256 newDividends = s_dividendToken.balanceOf(
-                        address(this)
-                    ) - currentBalance;
-                    _distributeDividends(newDividends);
-                    s_dividendFeesPending = 0;
-                }
-            }
-            s_swapping = false;
-        }
-
-        uint256 transferAmount = amount;
-        if (
-            !s_isExcludedFromFees[from] &&
-            !s_isExcludedFromFees[to] &&
-            (s_ammPairs[from] || s_ammPairs[to]) &&
-            !s_swapping
-        ) {
-            uint256 baseFee = (amount * s_baseFee) / 10000;
-            uint256 dividendFee = (amount * s_dividendFee) / 10000;
-            uint256 totalFees = baseFee + dividendFee;
-
-            transferAmount = amount - baseFee - dividendFee;
-
-            s_baseFeesPending += baseFee;
-            s_dividendFeesPending += dividendFee;
-
-            super._update(from, address(this), totalFees);
-        }
-
-        super._update(from, to, transferAmount);
-
-        _updateDividendAccount(from, balanceOf(from));
-        _updateDividendAccount(to, balanceOf(to));
-
-        if (!s_swapping) {
-            _processDividends();
-        }
-    }
-
-    /**
-     * Getter Functions
-     */
-
-    /// @notice Gets operations fee
+    /// @notice Gets operations (base) fee
+    /// @dev base fee paid in native token to fee address (200 -> 2%)
     function getBaseFee() external view returns (uint256) {
         return s_baseFee;
     }
 
-    /// @notice Gets rewards fee
+    /// @notice Gets dividend fee
+    /// @dev dividend fee paid in dividend token to holders (200 -> 2%)
     function getDividendFee() external view returns (uint256) {
         return s_dividendFee;
-    }
-
-    /// @notice Gets total transaction fee
-    function getTotalTransactionFee() external view returns (uint256) {
-        uint256 totalFees = s_baseFee + s_dividendFee;
-        return totalFees;
     }
 
     /// @notice Gets fee address
@@ -333,5 +169,145 @@ contract FlamelingToken is ERC20, DividendShares {
     /// @notice Returns swap treshold in ERC20 token amount
     function getSwapThreshold() public view returns (uint256) {
         return s_swapThreshold;
+    }
+
+    /** PUBLIC FUNCTIONS */
+
+    /// @notice Exludes/includes address from fee
+    /// @param account address to be excluded or included
+    /// @param isExcluded flag for excluded (true) and includes (false)
+    function excludeFromFees(
+        address account,
+        bool isExcluded
+    ) public onlyOwner {
+        s_isExcludedFromFees[account] = isExcluded;
+
+        emit ExcludedFromFees(account, isExcluded);
+    }
+
+    /// @notice Sets AMM Pairs
+    /// @param pair pair address
+    /// @param value flag if traded pair
+    function updateAMMPair(address pair, bool value) public onlyOwner {
+        if (s_ammPairs[pair] == value)
+            revert FlamelingToken__AMMPairAlreadySet();
+        s_ammPairs[pair] = value;
+        excludeFromDividends(pair);
+        emit AMMPairUpdated(pair, value);
+    }
+
+    /** INTERNAL FUNCTIONS */
+
+    /// @notice Takes fee and transfers tokens
+    /// @param from sender address
+    /// @param to receiver address
+    /// @param amount token amount
+    /// @dev updates transfer function of openzepplin library
+    function _update(
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual override {
+        _updateDividends(from);
+        _updateDividends(to);
+
+        if (
+            balanceOf(address(this)) >= s_swapThreshold &&
+            !s_swapping &&
+            !s_ammPairs[from]
+        ) {
+            s_swapping = true;
+            if (s_baseFeesPending > 0) {
+                _swapAndSendBaseFee(s_baseFeesPending, s_baseFeeAddress);
+            }
+
+            if (s_dividendFeesPending > 0) {
+                uint256 currentBalance = s_dividendToken.balanceOf(
+                    address(this)
+                );
+                _swapTokenForDividendToken(s_dividendFeesPending);
+                uint256 newDividends = s_dividendToken.balanceOf(
+                    address(this)
+                ) - currentBalance;
+                _distributeDividends(newDividends);
+            }
+            s_swapping = false;
+        }
+
+        uint256 transferAmount = amount;
+        if (
+            !s_isExcludedFromFees[from] &&
+            !s_isExcludedFromFees[to] &&
+            (s_ammPairs[from] || s_ammPairs[to]) &&
+            !s_swapping
+        ) {
+            uint256 baseFee = (amount * s_baseFee) / 10000;
+            uint256 dividendFee = (amount * s_dividendFee) / 10000;
+            uint256 totalFees = baseFee + dividendFee;
+
+            transferAmount = amount - baseFee - dividendFee;
+
+            s_baseFeesPending += baseFee;
+            s_dividendFeesPending += dividendFee;
+
+            super._update(from, address(this), totalFees);
+        }
+
+        super._update(from, to, transferAmount);
+
+        _updateDividendAccount(from, balanceOf(from));
+        _updateDividendAccount(to, balanceOf(to));
+
+        if (!s_swapping) {
+            _processDividends();
+        }
+    }
+
+    /** PRIVATE FUNCTIONS */
+
+    function _swapTokenForDividendToken(uint256 amount) private {
+        address[] memory path = new address[](3);
+        path[0] = address(this);
+        path[1] = s_routerV2.WETH();
+        path[2] = address(s_dividendToken);
+
+        _approve(address(this), address(s_routerV2), amount);
+
+        s_dividendFeesPending = 0;
+        try
+            s_routerV2.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+                amount,
+                0,
+                path,
+                address(this),
+                block.timestamp
+            )
+        {} catch {
+            s_dividendFeesPending = amount;
+        }
+    }
+
+    function _swapAndSendBaseFee(
+        uint256 feeAmount,
+        address feeAccount
+    ) private {
+        address[] memory path = new address[](2);
+        path[0] = address(this);
+        path[1] = s_routerV2.WETH();
+
+        _approve(address(this), address(s_routerV2), feeAmount);
+
+        s_baseFeesPending = 0;
+        try
+            s_routerV2.swapExactTokensForETHSupportingFeeOnTransferTokens(
+                feeAmount,
+                0,
+                path,
+                feeAccount,
+                block.timestamp
+            )
+        {} catch {
+            s_baseFeesPending = feeAmount;
+        }
     }
 }

@@ -2,7 +2,7 @@
 pragma solidity 0.8.20;
 
 import {Script, console} from "forge-std/Script.sol";
-import {ERC20Token} from "../src/ERC20Token.sol";
+import {ERC20Token} from "../mock/ERC20Token.sol";
 import {IERC20, ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {DeployUniswap} from "./DeployUniswap.s.sol";
 import {IUniswapV2Pair} from "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
@@ -14,7 +14,7 @@ contract HelperConfig is Script {
     NetworkConfig public activeNetworkConfig;
 
     string constant NAME = "FLAMELING";
-    string constant SYMBOL = "0X177";
+    string constant SYMBOL = "0XXXXX";
 
     struct NetworkConfig {
         string name;

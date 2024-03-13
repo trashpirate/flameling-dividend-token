@@ -118,7 +118,8 @@ contract FuzzTransfers is TestInitialized {
         vm.assume(amount >= 10 ** 18 && amount < 100_000_000 * 10 ** 18);
 
         console.log("\nTransfer Amount", amount);
-        uint256 fee = (amount * token.getTotalTransactionFee()) / 10000;
+        uint256 fee = (amount * (token.getBaseFee() + token.getDividendFee())) /
+            10000;
         uint256 endingBalance = token.balanceOf(USER1) + amount - fee;
 
         address routerAddress = token.getRouterV2Address();

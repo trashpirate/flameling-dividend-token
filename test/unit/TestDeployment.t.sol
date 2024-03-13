@@ -10,7 +10,6 @@ import {FlamelingToken} from "../../src/FlamelingToken.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 
 import {IUniswapV2Pair} from "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
-import {IUniswapV2Router02} from "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
 contract TestDeployment is TestInitialized {
     function test__Initialization() public {
@@ -20,7 +19,6 @@ contract TestDeployment is TestInitialized {
 
         assertEq(token.getBaseFee(), OPERATIONS_FEE);
         assertEq(token.getDividendFee(), DIVIDEND_FEE);
-        assertEq(token.getTotalTransactionFee(), DIVIDEND_FEE + OPERATIONS_FEE);
     }
 
     function test__ConstructorArguments() public {

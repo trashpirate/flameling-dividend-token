@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 
 import {Test, console} from "forge-std/Test.sol";
 import {FlamelingToken} from "../../../src/FlamelingToken.sol";
-import {ERC20Token} from "../../../src/ERC20Token.sol";
+import {ERC20Token} from "../../../mock/ERC20Token.sol";
 
 import {CommonBase} from "forge-std/Base.sol";
 import {StdCheats} from "forge-std/StdCheats.sol";
