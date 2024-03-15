@@ -31,4 +31,7 @@ depth=150
 fail_on_revert=true
 
 # [profile.default.model_checker]
-# contracts = { "src/FlamelingToken.sol" = ["FlamelingToken"], "src/DividendShares.sol" = ["DividendShares"] }
+# contracts = { "src/FlamelingToken.sol" = ["FlamelingToken"] }
+# engine = 'chc'
+# timeout = 10000
+# targets = ['assert']
