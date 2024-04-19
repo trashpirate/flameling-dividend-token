@@ -10,13 +10,16 @@ contract DeployUniswap is Script {
 
     function run() external returns (address router) {
         vm.startBroadcast();
-        address wbnb = deployCode("WETH.sol:WBNB");
-        console.log("WBNB: %s", wbnb);
+        address weth = deployCode("WETH.sol:WETH9");
+        console.log("WETH: %s", weth);
 
-        address factory = deployCode("UniswapV2Factory.sol", abi.encode(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266));
+        address factory = deployCode(
+            "UniswapV2Factory.sol",
+            abi.encode(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266)
+        );
         console.log("Factory: %s", factory);
 
-        router = deployCode("UniswapV2Router02.sol", abi.encode(factory, wbnb));
+        router = deployCode("UniswapV2Router02.sol", abi.encode(factory, weth));
         console.log("Router: %s", router);
         vm.stopBroadcast();
 

@@ -73,9 +73,15 @@ The dividend logic including updating dividend accounts, distributing dividends,
 ### Usage
 
 #### Compiling
-```sh
-forge compile
-```
+
+1. Compile mock contracts:
+    ```sh
+    forge build --contracts mock
+    ```
+2. Compile remaining contracts:
+    ```sh
+    forge build
+    ```
 
 #### Testing locally
 
